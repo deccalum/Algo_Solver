@@ -12,29 +12,30 @@ public class Main {
     public static void main(String[] args) {
         // Generate products
         List<Product> products = generateProducts(5);
-        System.out.println("Available products:");
+        System.out.println(String.format("%-20s %-20s %-10s %-6s", "PRODUCT ID", "NAME", "PRICE", "STOCK"));
         products.forEach(System.out::println);
         System.out.println();
 
         int orderNumber = 1;
+
         while (hasStock(products)) {
 
             // Generate customer and create order
             Customer customer = new Customer().generateCustomer();
-            System.out.println("Customer:");
+            System.out.println("INCOMING ORDER FROM CUSTOMER");
+            System.out.println(String.format("%-12s %-20s %-25s", "ID", "NAME", "EMAIL"));
             System.out.println(customer);
             System.out.println();
 
             Order order = purchaseOrder(customer, products);
-            System.out.println("Order" + orderNumber + " created:");
             System.out.println(order);
             System.out.println();
-
-            System.out.println("Updated stock after order:");
+            System.out.println("UPDATED PRODUCT STOCK");
             products.forEach(System.out::println);
+            System.out.println();
 
             try {
-                TimeUnit.SECONDS.sleep(2);
+                TimeUnit.SECONDS.sleep(3);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
@@ -46,6 +47,16 @@ public class Main {
         // update stock
 
         // lateer continue until stock is out of all products
+
+        // additional future functions
+        // realistic prices + cost + profit calculatiosn.
+        // customer history
+        // restock products
+        // order summary report total revenue number sold etc processed orders avg order
+        // value etc
+        // per-product info total sold revenue etc
+        // custoemr info total spent orders etc email in order
+        // time tracking order date time etc
     }
 
     private static boolean hasStock(List<Product> products) {
@@ -140,7 +151,7 @@ public class Main {
 
         @Override
         public String toString() {
-            return "Customer{id=" + customerID + ", name='" + name + "', email='" + email + "'}";
+            return String.format("%-12d %-20s %-25s", customerID, name, email);
         }
     }
 
@@ -197,8 +208,8 @@ public class Main {
 
         @Override
         public String toString() {
-            return "Product{id=" + productID + ", name='" + String.join(" ", name) + "', price=" + price + ", stock="
-                    + stock + "}";
+            return String.format(java.util.Locale.US, "%-20s %-20s $%-9.2f %-6d",
+                    productID, String.join(" ", name), price, stock);
         }
     }
 
@@ -267,12 +278,17 @@ public class Main {
 
         @Override
         public String toString() {
+            // string builder ??
             StringBuilder sb = new StringBuilder();
-            sb.append("Order{id=").append(orderID)
-                    .append(", customer=").append(customer.getName())
-                    .append(", total=$").append(total)
-                    .append("}\nItems:\n");
-            items.forEach(item -> sb.append("  - ").append(item).append("\n"));
+            sb.append(String.format("%-12s \n", orderID));
+            sb.append(String.format("%-4s %-20s %-10s %-10s\n", "QT", "Product", "UnitPrice", "Subtotal"));
+            for (OrderItem item : items) {
+                sb.append(String.format(java.util.Locale.US, "%-4d %-20s $%-9.2f $%-9.2f\n",
+                        item.getQuantity(),
+                        String.join(" ", item.getProduct().getName()),
+                        item.getProduct().getPrice(),
+                        item.getSubtotal()));
+            }
             return sb.toString();
         }
     }
