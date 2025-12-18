@@ -16,7 +16,7 @@ public class Main {
 
         List<Product> products = generateProducts(5);
         System.out.println(String.format("%-20s %-20s %-10s %-6s", "PRODUCT ID", "NAME", "PRICE", "STOCK"));
-        products.forEach(System.out::println);
+        products.forEach(System.out::println); // #
         System.out.println();
 
         int orderNumber = 1;
@@ -36,8 +36,6 @@ public class Main {
             products.forEach(System.out::println); // #
             System.out.println();
 
-            System.out.println("Next run in 3 seconds...\n\n");
-
             try {
                 TimeUnit.SECONDS.sleep(3);
             } catch (InterruptedException e) {
@@ -47,18 +45,6 @@ public class Main {
             orderTime = orderTime.plusMinutes(ORDER_INTERVAL_MINUTES);
 
         }
-
-        /*
-         * additional future functions
-         * realistic prices + cost + profit calculations.
-         * customer history
-         * restock products
-         * shipment in out
-         * order summary report total revenue number sold etc processed orders avg order
-         * value etc
-         * per-product info total sold revenue etc
-         * customer info total spent orders etc email in order
-         */
     }
 
     // Simple boolean to check if any products have stock left
@@ -174,22 +160,26 @@ public class Main {
         private String[] name;
         private double price;
         private int stock;
+        private String category;
 
         public Product() {
         }
 
-        public Product(String productID, String[] name, double price, int stock) {
+        public Product(String productID, String[] name, double price, int stock, String category) {
             this.productID = productID;
             this.name = name;
             this.price = price;
             this.stock = stock;
+            this.category = category;
         }
 
         public Product generateProduct() {
             this.productID = Generators.productIDGenerator();
-            this.name = Generators.productNameGenerator();
-            this.price = Generators.priceGenerator();
+            this.name = Generators.productGenerator();
+            this.price = Generators.priceGenerator(this.name[0], this.name[1]);
             this.stock = Generators.stockGenerator();
+            // Always derive category from product type to ensure consistency
+            this.category = Generators.categoryFor(this.name[1]);
             return this;
         }
 
@@ -202,6 +192,14 @@ public class Main {
 
         public void setStock(int stock) {
             this.stock = stock;
+        }
+
+        public void setPrice(double price) {
+            this.price = price;
+        }
+
+        public void setCategory(String category) {
+            this.category = category;
         }
 
         public String getProductID() {
@@ -218,6 +216,10 @@ public class Main {
 
         public int getStock() {
             return stock;
+        }
+
+        public String getCategory() {
+            return category;
         }
 
         @Override
@@ -307,6 +309,7 @@ public class Main {
                         item.getQuantity(),
                         String.join(" ", item.getProduct().getName()),
                         item.getProduct().getPrice(),
+                        item.getProduct().getCategory(),
                         item.getSubtotal()));
             }
             return sb.toString();
