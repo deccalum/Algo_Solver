@@ -1,13 +1,20 @@
 package se.lexicon;
 
 public class Product {
-    private String productID;
     private String[] product;
-    private double price;
+    private String productID;
     private String category;
+    private double price;
+    private double retailPrice;
     private int size;
     private int weight;
     private int stock;
+    private int handling; // to increase warehouse staff needs and or time to pick
+    private int fragility; // to increase ship cost
+    private int minOrderQuantity;
+    private int leadTime;
+    private int bulkDiscount;
+    private int demand;
 
     public Product() {
     }
@@ -61,6 +68,19 @@ public class Product {
         }
         this.stock -= quantity;
     }
+    public double retailPrice(double price, double markupPercentage) {
+        // retail price calculated base on ... can lower if demand is low or in need to clear stock - if product is returned with opened box 
+        return price + (price * markupPercentage / 100);
+    }
+    public double stockCost(double price, int quantity, int size) {
+        return (price * quantity ) * size; // product ship cost in seperate method
+    }
+    public double profitMargin(double price, double retailPrice, int stockCost, int quantity, int demand) {
+        return (price - retailPrice - stockCost ) * demand;
+    }
+    public double velocity(int demand, int stock, int timePeriod) {
+        return (demand / stock ) * timePeriod;
+    }
 
     public String getProductID() {
         return productID;
@@ -90,3 +110,18 @@ public class Product {
                 productID, product[0] + " " + product[1], category, price, size + "cm", weight + "g", stock);
     }
 }
+/*
+public class Relations {
+
+    New class ProductRelationships:
+
+    getRelated(Product) → returns list of complementary products
+    Desktop → Monitor, Keyboard, Mouse
+    Laptop → Laptop Bag, USB Hub, Cooling Pad
+    Earbuds → Phone cases, charging cables
+
+        
+    getRelationshipStrength(Product, Product) → how strongly related (0.0-1.0)
+    suggestBundle(Product, StoreSize) → recommend related products based on warehouse
+}
+*/

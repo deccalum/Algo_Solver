@@ -123,3 +123,17 @@ public class MonthlyReport {
         return new HashMap<>(productSales);
     }
 }
+
+/*
+
+Enhance MonthlyReport:
+
+warehouseCost = capacity_used * cost_per_m2
+staffingCost = scales with warehouse size (small=1 person, large=10+)
+inventoryCarryingCost = average_inventory_value * holding_rate
+obsolescence_cost = products that don't sell
+Methods:
+
+calculateTotalOperatingCost() → salaries + warehouse + utilities + carrying
+calculateROI(Product, soldQuantity) → return on investment per product
+ */

@@ -8,6 +8,7 @@ import java.util.Scanner;
 
 public class Main {
     private final TimeSimulator timeSimulator;
+    private final Store store;
     private final OrderProcessor orderProcessor;
     private final BusinessHours businessHours;
     private final MonthlyReport monthlyReport;
@@ -17,6 +18,7 @@ public class Main {
     private final Random random = new Random();
 
     public Main() {
+        this.store = new Store();
         this.businessHours = new BusinessHours();
         this.timeSimulator = new TimeSimulator();
         this.orderProcessor = new OrderProcessor(businessHours);
@@ -29,22 +31,21 @@ public class Main {
     }
 
     public void start() {
-        // Start time simulation in a separate thread
+        System.out.println("Starting Shop Simulator: " + store.getName());
+
+        //Start time simulation
         Thread timeThread = new Thread(() -> timeSimulator.tick());
-        timeThread.setDaemon(false);
         timeThread.start();
 
-        // Start order generation in a separate thread
+        // Start order generation
         Thread orderThread = new Thread(this::generateOrders);
-        orderThread.setDaemon(false);
         orderThread.start();
 
-        // Start month-end checking in a separate thread
+        // Start month-end checking
         Thread monthCheckThread = new Thread(this::checkMonthEnd);
-        monthCheckThread.setDaemon(false);
         monthCheckThread.start();
 
-        // Handle user commands in main thread
+        // Start handling user commands (Blocks the main thread)
         handleUserCommands();
 
         // Cleanup
@@ -191,5 +192,4 @@ public class Main {
         return products.stream().anyMatch(p -> p.getStock() > 0);
     }
 }
-
 

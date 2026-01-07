@@ -1,9 +1,8 @@
 package se.lexicon;
 
-import java.util.Arrays;
-import java.util.UUID;
-import java.util.Random;
 import java.time.LocalDateTime;
+import java.util.Random;
+import java.util.UUID;
 
 public class Generators {
 
@@ -49,6 +48,22 @@ public class Generators {
             { "Router", 0.6, "Networking" }
     };
 
+    // quick store names. expand based on product range later
+    private static final Object[][] storeNames = {
+            { "Tech Haven" },
+            { "Gadget Galaxy" },
+            { "Device Depot" },
+            { "Electro Emporium" },
+            { "Digital Den" },
+            { "Gizmo Garage" },
+            { "Widget World" },
+            { "Techno Tower" },
+            { "Circuit City" },
+            { "Pixel Palace" }
+    };
+
+
+    // ID/NAME GENERATORS
     public static int randID() {
         int randID = UUID.randomUUID().hashCode();
         if (randID < 0) {
@@ -69,7 +84,6 @@ public class Generators {
     }
 
     // PRODUCT GENERATORS
-
     public static String productID() {
         return "PROD-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
     }
@@ -84,6 +98,15 @@ public class Generators {
 
         // Return version, type, and category to match caller expectations
         return new String[] { version, type, category };
+    }
+
+    public static String productCategory(String category) {
+        for (Object[] p : productType) {
+            if (p[0].toString().equals(category)) {
+                return p[2].toString();
+            }
+        }
+        return "Unknown";
     }
 
     public static double productPrice(String version, String type) {
@@ -112,13 +135,49 @@ public class Generators {
         return Math.round(finalPrice * 100.0) / 100.0;
     }
 
-    public static String productCategory(String category) {
-        for (Object[] p : productType) {
-            if (p[0].toString().equals(category)) {
-                return p[2].toString();
-            }
-        }
-        return "Unknown";
+    public static double productRetailPrice(double price) {
+        /*
+        intelligent retail price. base on demand, stock levels, trends. 
+        should be modifable for sales and discounts
+        */
+       return 0.0;
+    }
+
+
+    public static double productHandling(double weight, double fragility, double size) {
+
+        /*
+        heavyMultiplier = weight > 50kg ? 1.5 : 1.0
+        sizeMultiplier = size > 5000cm² ? 1.3 : 1.0
+        handlingCost = baseHandlingCost * heavyMultiplier * sizeMultiplier
+        */
+
+        return 0.0;
+    }
+
+    /* 
+    demand Methods here
+     */
+    /*
+    public static int[] ratingGenerator() {
+        int ratingsCount = random.nextInt(1, 501); // 1 to 500 ratings
+        int averageRating = random.nextInt(1, 6); // 1 to 5 stars
+        return new int[] { averageRating, ratingsCount };
+    }
+
+    
+        // upcoming news/seasonal popularity / trends 
+
+    */
+
+    public static double productProfit(double price, double retailPrice, double handling) {
+        double productProfit = (retailPrice - price - handling);
+        return productProfit;
+    }
+
+    public static double productProfitPerMeters(double productProfit, double size) {
+        double profitPerM2 = productProfit / (size / 10000.0);
+        return profitPerM2;
     }
 
     public static int[] productMetrics(String version, String type) {
@@ -131,14 +190,6 @@ public class Generators {
         return new int[] { sizeSquared, weight };
     }
 
-    /*
-    public static int[] ratingGenerator() {
-        int ratingsCount = random.nextInt(1, 501); // 1 to 500 ratings
-        int averageRating = random.nextInt(1, 6); // 1 to 5 stars
-        return new int[] { averageRating, ratingsCount };
-    }
-    */
-
     public static int productStock() {
         return random.nextInt(1, 21);
     }
@@ -147,30 +198,135 @@ public class Generators {
         return LocalDateTime.now().plusMinutes(orderIndex * 5);
     }
 
-        // not used. Kept for reference
-    public static String formatVersionModifiers() {
-        return Arrays.stream(productVersion) // gets all key-valie pairs as a stream
-                .map(e -> e[0] + ": " + e[1]) // maps each entry to a string "key: value"
-                .reduce((a, b) -> a + ", " + b) // reduces the stream to a single string, concatenating with ", "
-                .orElse(""); // returns the resulting string or an empty string if the map is empty
+
+    // STORE LOGICS
+    public enum Warehouse { SMALL, MEDIUM, LARGE }
+    public enum Store { SMALL, MEDIUM, LARGE }
+
+    public static Store randomStoreSize() {
+        return Store.values()[random.nextInt(Store.values().length)];
     }
-}
 
+    public static Warehouse randomWarehouseSize() {
+        return Warehouse.values()[random.nextInt(Warehouse.values().length)];
+    }
 
+    public static Warehouse deriveWarehouseSize(Store s) {
+        return switch (s) {
+            case SMALL -> Warehouse.SMALL;
+            case MEDIUM -> Warehouse.MEDIUM;
+            case LARGE -> Warehouse.LARGE;
+        };
+    }
 
+    public static String storeName() {
+        Object[] pick = storeNames[random.nextInt(storeNames.length)];
+        return (String) pick[0];
+    }
 
+    public static double storeBudget(Store size) {
+        return switch (size) {
+            case SMALL -> 10_000 + (30_000 - 10_000) * random.nextDouble();
+            case MEDIUM -> 30_000 + (80_000 - 30_000) * random.nextDouble();
+            case LARGE -> 80_000 + (200_000 - 80_000) * random.nextDouble();
+        };
+    }
+
+    public static final int storeWage() {
+        return 2000 + (5000 - 2000) * random.nextInt(); // $2,000 to $5,000 per staff
+    }
+
+    public static final int warehouseWage() {
+        return 1800 + (3000 - 1800) * random.nextInt(); // $1,800 to $3,000 per staff
+    }
+
+    public static int storeEmployees(Store size) {
+        return switch (size) {
+            case SMALL -> random.nextInt(1, 2);
+            case MEDIUM -> random.nextInt(2, 4);
+            case LARGE -> random.nextInt(4, 10);
+        };
+    }
+
+    public static int warehouseEmployees(Warehouse size) {
+        return switch (size) {
+            case SMALL -> random.nextInt(1, 2);
+            case MEDIUM -> random.nextInt(3, 5);
+            case LARGE -> random.nextInt(6, 11);
+        };
+    }
 
     /*
-     * ENUM EXAMPLE:
-     * public enum ProductVersion {
-     * LITE(0.6),
-     * MINI(0.7),
-     * GO(0.8),
-     * ULTRA(1.8),
-     * PRO(1.3);
-     * 
-     * private final double multiplier;
-     * ProductVersion(double multiplier) { this.multiplier = multiplier; }
-     * public double getMultiplier() { return multiplier; }
-     * }
-     */
+    public static double salaries(int staffCount) {
+        return staffCount * (2000 + (5000 - 2000) * random.nextDouble()); // $2,000 to $5,000 per staff
+
+            11. Calculate total handling workload:
+                totalHandlingHours = Σ(product.handlingCost * quantity)
+                ↓
+            12. Calculate additional staff needed:
+                workersNeeded = totalHandlingHours / hoursPerWorkerPerMonth
+                ↓
+            13. Update wages:
+                totalWages = baseStaffing + (workersNeeded * salaryPerWorker)
+                ↓
+            14. Recalculate available budget:
+                availableBudget = totalBudget - fixedCosts - totalWages 
+    }
+    */
+
+    public static double rent(Warehouse size) {
+        // Rent per m²: larger warehouses cheaper per m²
+        double perM2 = switch (size) {
+            case SMALL -> 15 + (25 - 15) * random.nextDouble();
+            case MEDIUM -> 10 + (18 - 10) * random.nextDouble();
+            case LARGE -> 7 + (12 - 7) * random.nextDouble();
+        };
+        return perM2;
+    }
+
+    public static double utilities(Warehouse size) {
+        return switch (size) {
+            case SMALL -> 500 + (2000 - 500) * random.nextDouble();        // $500-$2,000
+            case MEDIUM -> 2000 + (10000 - 2000) * random.nextDouble();    // $2,000-$10,000
+            case LARGE -> 10000 + (50000 - 10000) * random.nextDouble();   // $10,000-$50,000
+        };
+    }
+
+    public static int warehouseCapacity(Warehouse size) {
+        return switch (size) {
+            case SMALL -> random.nextInt(50, 1001);        // 50-1,000 m^2
+            case MEDIUM -> random.nextInt(1001, 10001);  // 1,001-10,000 m^2
+            case LARGE -> random.nextInt(10001, 100001); // 10,001-100,000 m^2
+        };
+    }
+    
+
+    //public static void importList(int size, double budget, int handling) {
+        /*
+        need demand (units sold) dont need more than demand.
+        product relation, 
+        wages
+
+
+        15. Sort products by profitPerSquareMeter (descending)
+        ↓
+        16. Greedy selection loop:
+            while (remainingBudget > 0 && remainingSpace > 0):
+            → Pick next highest-profit product
+            → Calculate max quantity that fits:
+                maxByBudget = remainingBudget / manufacturerCost
+                maxBySpace = remainingSpace / productSize
+                maxByDemand = estimatedMonthlyDemand * safetyFactor
+                
+                quantity = min(maxByBudget, maxBySpace, maxByDemand)
+            
+            → Add to importList
+            → Deduct from remainingBudget and remainingSpace
+            → Recalculate staffing if needed (step 11-14)
+        ↓
+        17. Return Map<Product, Integer> (product → quantity)
+
+         */
+    
+
+}

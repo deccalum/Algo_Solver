@@ -27,8 +27,14 @@
     **SOLUTION:**
 
     - Decouple product count from store budget. Introduce a fixed budget or a budget based on realistic factors (e.g., market size, customer base).
-    - Introduce *manefacure store* that supplies the products to the online shop. Manefacture store can have contracts with suppliers, different customs, import costs, etc.
+    - Introduce *manufacturer store* that supplies the products to the online shop. Manufacturer store can have contracts with suppliers, different customs, import costs, etc.
     - Implement a more sophisticated pricing model that considers factors like demand, competition, and market trends rather than just random multipliers.
+
+        store budget > manufacturer product IN > Stock SET > customer orders OUT > revenue CALC > profit/loss CALC
+
+        *manufacturer store* 
+        "hidden" layer/not needed. products are generated > sold to online shop > online shop sells to customers.
+        *store budget* = if low DO buy low cost products, if high DO buy high cost products. 
 
 
 #### Main.java
