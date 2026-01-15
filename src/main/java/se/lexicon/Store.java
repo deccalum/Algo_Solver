@@ -6,14 +6,15 @@ import java.util.Map;
 
 public class Store {
     private String name;
-    private double budget;
-    private int storeStaff;
-    private Warehouse warehouse;
+    private static double budget;
+    private static int storeStaff;
+    private static double profit;
+    private static Warehouse warehouse;
     private Generators.Store size;
 
     public int wage;
     private double rent;
-    private double utilities;
+    private static double utilities;
 
     public Store() {
         Generators.Store s = Generators.randomStoreSize();
@@ -81,7 +82,7 @@ public class Store {
         return products;
     }
 
-    public double spending() {
+    public static double spending() {
         double storewages = storeStaff * Generators.storeWage();
         double warehousewage = warehouse.getStaffCount() * Generators.warehouseWage();
         double warehouseRent = warehouse.getRent();
@@ -89,34 +90,18 @@ public class Store {
         return storewages + warehousewage + warehouseRent + utilities;
     }
 
+    public static double profit() {
+        return budget - spending();
+    }
+
     public double availableBudget() {
         return budget - spending();
     }
 
-
+    public Generators.Store getSize() { return size; }
     public Warehouse getWarehouse() { return warehouse; }
     public String getName() { return name; }
     public double budget() { return budget; }
     public int storeStaff() { return storeStaff; }
     public double getSpending() { return spending(); }
 }
-
-/*
-public class InventoryPlanner {
-    calculateOptimalOrder(StoreSize, budget, productList) → returns recommended purchases
-    Logic:
-    
-    Filter products by profitability (high margin, fast velocity first)
-    Check warehouse space constraints
-    Bundle related products together
-    Prioritize products that complement existing inventory
-    Respect budget limit
-    Consider reorder points (when to restock)
-    Methods:
-    
-    rankProductsByProfitPerSquareMeter(List<Product>) → efficiency metric
-    suggestInitialInventory(StoreSize, budget) → startup inventory
-    suggestReorder(currentInventory, salesHistory) → replenishment logic
-    optimizeForCashFlow(budget) → if low budget, prefer fast-movers
-}
-*/

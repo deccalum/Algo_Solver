@@ -135,49 +135,23 @@ public class Generators {
         return Math.round(finalPrice * 100.0) / 100.0;
     }
 
-    public static double productRetailPrice(double price) {
-        /*
-        intelligent retail price. base on demand, stock levels, trends. 
-        should be modifable for sales and discounts
-        */
-       return 0.0;
-    }
-
-
     public static double productHandling(double weight, double fragility, double size) {
-
-        /*
-        heavyMultiplier = weight > 50kg ? 1.5 : 1.0
-        sizeMultiplier = size > 5000cm² ? 1.3 : 1.0
-        handlingCost = baseHandlingCost * heavyMultiplier * sizeMultiplier
-        */
-
-        return 0.0;
+        return 2 * weight / 1000.0 + fragility * 0.5 + size / 10000.0;
     }
-
-    /* 
-    demand Methods here
-     */
     /*
     public static int[] ratingGenerator() {
         int ratingsCount = random.nextInt(1, 501); // 1 to 500 ratings
         int averageRating = random.nextInt(1, 6); // 1 to 5 stars
         return new int[] { averageRating, ratingsCount };
     }
-
-    
-        // upcoming news/seasonal popularity / trends 
-
     */
 
     public static double productProfit(double price, double retailPrice, double handling) {
-        double productProfit = (retailPrice - price - handling);
-        return productProfit;
+        return (retailPrice - price - handling);
     }
 
     public static double productProfitPerMeters(double productProfit, double size) {
-        double profitPerM2 = productProfit / (size / 10000.0);
-        return profitPerM2;
+        return productProfit / (size / 10000.0);
     }
 
     public static int[] productMetrics(String version, String type) {
@@ -233,11 +207,11 @@ public class Generators {
     }
 
     public static final int storeWage() {
-        return 2000 + (5000 - 2000) * random.nextInt(); // $2,000 to $5,000 per staff
+        return 2000 + random.nextInt(5000 - 2000 + 1); // $2,000 to $5,000 per staff
     }
 
     public static final int warehouseWage() {
-        return 1800 + (3000 - 1800) * random.nextInt(); // $1,800 to $3,000 per staff
+        return 1800 + random.nextInt(3000 - 1800 + 1); // $1,800 to $3,000 per staff
     }
 
     public static int storeEmployees(Store size) {
@@ -255,24 +229,6 @@ public class Generators {
             case LARGE -> random.nextInt(6, 11);
         };
     }
-
-    /*
-    public static double salaries(int staffCount) {
-        return staffCount * (2000 + (5000 - 2000) * random.nextDouble()); // $2,000 to $5,000 per staff
-
-            11. Calculate total handling workload:
-                totalHandlingHours = Σ(product.handlingCost * quantity)
-                ↓
-            12. Calculate additional staff needed:
-                workersNeeded = totalHandlingHours / hoursPerWorkerPerMonth
-                ↓
-            13. Update wages:
-                totalWages = baseStaffing + (workersNeeded * salaryPerWorker)
-                ↓
-            14. Recalculate available budget:
-                availableBudget = totalBudget - fixedCosts - totalWages 
-    }
-    */
 
     public static double rent(Warehouse size) {
         // Rent per m²: larger warehouses cheaper per m²

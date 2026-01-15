@@ -32,6 +32,13 @@ public class Main {
 
     public void start() {
         System.out.println("Starting Shop Simulator: " + store.getName());
+        System.out.println("Store Size: " + store.getSize());
+        System.out.println("Initial Budget: $" + store.budget());
+
+        
+        // Initial speed 720x
+        System.out.println("Setting simulation to Turbo Speed (720x) - 1 Month ≈ 1 Minute");
+        timeSimulator.setSpeed(720);
 
         //Start time simulation
         Thread timeThread = new Thread(() -> timeSimulator.tick());
@@ -54,24 +61,42 @@ public class Main {
     }
 
     private void generateOrders() {
-        List<Product> products = generateProducts(10);
-        System.out.println("=== INITIAL PRODUCTS ===");
-        System.out.println(String.format("%-15s %-20s %-15s %-10s %-10s %-10s %-6s", 
-                "PRODUCT ID", "NAME", "CATEGORY", "PRICE", "SIZE", "WEIGHT", "STOCK"));
-        products.forEach(System.out::println);
-        System.out.println();
+        // Determine order interval based on store size
+        int orderIntervalMinutes = switch (store.getSize()) {
+            case SMALL -> 60;  // 1 order every hour
+            case MEDIUM -> 30; // 1 order every 30 mins
+            case LARGE -> 10;  // 1 order every 10 mins
+        };
 
-        final int ORDER_GENERATION_INTERVAL_SECONDS = 5; // Generate order every 5 seconds
-
-        while (simulationRunning && hasStock(products)) {
+        while (simulationRunning) {
             try {
-                // Adjust sleep based on speed multiplier
-                LocalDateTime now = timeSimulator.getCurrentSimTime();
-                Thread.sleep((long) (ORDER_GENERATION_INTERVAL_SECONDS * 1000 / timeSimulator.getSpeedMultiplier()));
+                // Calculate sleep time: (minutes * ms_per_minute) / speed
+                // 1 simulated minute = 1000ms / speed
+                long sleepMs = (long) orderIntervalMinutes * 1000L / timeSimulator.getSpeedMultiplier();
+                
+                // Ensure we don't sleep 0 or negative
+                if (sleepMs < 1) sleepMs = 1;
+                
+                Thread.sleep(sleepMs);
 
-                // Generate customer and order
+                LocalDateTime now = timeSimulator.getCurrentSimTime();
+                
+                // Get available products from warehouse
+                List<Product> available = new ArrayList<>();
+                var inventory = store.getWarehouse().getInventory();
+                for (var entry : inventory.entrySet()) {
+                    if (entry.getValue() > 0) {
+                        available.add(entry.getKey());
+                    }
+                }
+
+                if (available.isEmpty()) {
+                    // System.out.println("DEBUG: No stock available to sell.");
+                    continue; 
+                }
+
                 Customer customer = Customer.generateCustomer();
-                Order order = createOrder(customer, products, now);
+                Order order = createOrder(customer, available, now);
 
                 if (order != null) {
                     System.out.println(">>> New order generated <<<");
@@ -80,6 +105,15 @@ public class Main {
 
                     // Process order
                     orderProcessor.processOrder(order);
+                    
+                    // Deduct stock immediately to prevent selling same item twice before processor runs
+                    // (Though OrderProcessor also does it, we should coordinate. 
+                    // ideally createOrder claims the stock.)
+                    // For now, let's just record it.
+                    // Note: OrderProcessor.executeOrder reduces stock. 
+                    // We need to ensure we don't sell what we don't have.
+                    // The available list check helps, but concurrency is tricky.
+                    
                     monthlyReport.recordOrder(order);
                 }
             } catch (InterruptedException e) {
@@ -88,7 +122,7 @@ public class Main {
             }
         }
 
-        System.out.println("Order generation stopped. No more stock available.");
+        System.out.println("Order generation stopped.");
     }
 
     private void checkMonthEnd() {
@@ -123,7 +157,7 @@ public class Main {
 
     private void handleUserCommands() {
         try (Scanner scanner = new Scanner(System.in)) {
-            System.out.println("\nCommands: realtime | 4x | 8x | 32x | report | queue | quit");
+            System.out.println("\nCommands: realtime | 4x | 8x | 32x | turbo (720x) | report | queue | quit");
             
             while (simulationRunning) {
                 try {
@@ -135,17 +169,18 @@ public class Main {
                         case "4x" -> timeSimulator.setSpeed(4);
                         case "8x" -> timeSimulator.setSpeed(8);
                         case "32x" -> timeSimulator.setSpeed(32);
+                        case "turbo" -> timeSimulator.setSpeed(720);
                         case "report" -> {
                             LocalDateTime now = timeSimulator.getCurrentSimTime();
                             System.out.println(monthlyReport.generateReport(now));
                         }
                         case "queue" -> System.out.println("Orders in queue: " + businessHours.getQueueSize());
-                        case "time" -> System.out.println("Current simulated time: " + timeSimulator.getCurrentSimTime());
+                        case "time" -> System.out.println("Current simulated time: " + timeSimulator.getCurrentSimTime()); // #
                         case "quit" -> {
                             simulationRunning = false;
                             System.out.println("Shutting down simulation...");
                         }
-                        default -> System.out.println("Unknown command. Try: realtime | 4x | 8x | 32x | report | queue | time | quit");
+                        default -> System.out.println("Unknown command. Try: realtime | 4x | 8x | 32x | turbo | report | queue | time | quit");
                     }
                 } catch (Exception e) {
                     System.err.println("Error: " + e.getMessage());
@@ -178,18 +213,6 @@ public class Main {
         });
 
         return new Order(customer, orderItems, orderTime);
-    }
-
-    private List<Product> generateProducts(int count) {
-        List<Product> products = new ArrayList<>();
-        for (int i = 0; i < count; i++) {
-            products.add(new Product().generateProduct());
-        }
-        return products;
-    }
-
-    private boolean hasStock(List<Product> products) {
-        return products.stream().anyMatch(p -> p.getStock() > 0);
     }
 }
 

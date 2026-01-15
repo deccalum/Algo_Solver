@@ -15,11 +15,12 @@ public class Product {
     private int leadTime;
     private int bulkDiscount;
     private int demand;
+    private boolean isNew;
 
     public Product() {
     }
 
-    public Product(String productID, String[] product, String category, double price, int size, int weight, int stock) {
+    public Product(String productID, String[] product, String category, double price, int size, int weight, int stock, boolean isNew) {
         this.productID = productID;
         this.product = product;
         this.category = category;
@@ -27,6 +28,7 @@ public class Product {
         this.size = size;
         this.weight = weight;
         this.stock = stock;
+        this.isNew = isNew;
     }
 
     public Product generateProduct() {
@@ -68,10 +70,16 @@ public class Product {
         }
         this.stock -= quantity;
     }
-    public double retailPrice(double price, double markupPercentage) {
+
+    public double retailPrice(double price) {
         // retail price calculated base on ... can lower if demand is low or in need to clear stock - if product is returned with opened box 
-        return price + (price * markupPercentage / 100);
+        /*
+        intelligent retail price. base on demand, stock levels, trends. 
+        should be modifable for sales and discounts
+        */
+       return price * 1.2; // simple 20% markup for now
     }
+
     public double stockCost(double price, int quantity, int size) {
         return (price * quantity ) * size; // product ship cost in seperate method
     }
@@ -91,8 +99,8 @@ public class Product {
     public String getCategory() {
         return category;
     }
-    public double getPrice() {
-        return price;
+    public double getRetailPrice() {
+        return retailPrice;
     }
     public int getSize() {
         return size;
@@ -108,6 +116,11 @@ public class Product {
     public String toString() {
         return String.format(java.util.Locale.US, "%-15s %-20s %-15s $%-9.2f %-10s %-10s %-6d",
                 productID, product[0] + " " + product[1], category, price, size + "cm", weight + "g", stock);
+    }
+
+    public boolean isNew() {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'isNew'");
     }
 }
 /*

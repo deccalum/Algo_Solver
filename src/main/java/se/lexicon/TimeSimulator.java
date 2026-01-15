@@ -15,11 +15,11 @@ public class TimeSimulator {
     }
 
     public void setSpeed(int multiplier) {
-        if (multiplier == 1 || multiplier == 4 || multiplier == 8 || multiplier == 32) {
+        if (multiplier == 1 || multiplier == 4 || multiplier == 8 || multiplier == 32 || multiplier == 720) {
             this.speedMultiplier = multiplier;
             System.out.println("Speed set to " + multiplier + "x");
         } else {
-            System.out.println("Invalid speed. Use 1, 4, 8, or 32.");
+            System.out.println("Invalid speed. Use 1, 4, 8, 32, or 720 (Turbo).");
         }
     }
 

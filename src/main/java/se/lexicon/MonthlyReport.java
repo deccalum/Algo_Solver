@@ -11,12 +11,6 @@ public class MonthlyReport {
     private double totalRevenue = 0.0;
     private final Map<Product, Integer> productSales = new HashMap<>();
     
-    // Fixed monthly expenses
-    private static final double SALARIES = 50000;
-    private static final double RENT = 10000;
-    private static final double UTILITIES = 2000;
-    private static final double OTHER_EXPENSES = 5000;
-    
     private final int currentMonth = -1;
     private final int currentYear = -1;
 
@@ -88,19 +82,10 @@ public class MonthlyReport {
         report.append("\n");
         
         // Expenses section
-        double totalExpenses = SALARIES + RENT + UTILITIES + OTHER_EXPENSES;
-        report.append("EXPENSES:\n");
-        report.append(String.format("  Salaries: $%.2f\n", SALARIES));
-        report.append(String.format("  Rent: $%.2f\n", RENT));
-        report.append(String.format("  Utilities: $%.2f\n", UTILITIES));
-        report.append(String.format("  Other: $%.2f\n", OTHER_EXPENSES));
-        report.append(String.format("  Total Expenses: $%.2f\n\n", totalExpenses));
+        
         
         // Profit section
-        double netProfit = totalRevenue - totalExpenses;
-        report.append("=====================================\n");
-        report.append(String.format("NET PROFIT: $%.2f\n", netProfit));
-        report.append("=====================================\n\n");
+        report.append(String.format("NET PROFIT: $%.2f\n", Store.profit()));
         
         return report.toString();
     }
