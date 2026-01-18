@@ -2,7 +2,7 @@
 
 ## Quick Reference
 
-All configuration is centralized in `src/main/config.json`. Edit this file to adjust system behavior without touching Python code.
+Plan to adhere all values to `config/config.cfg`.
 
 ---
 
@@ -98,48 +98,3 @@ Demand multipliers by month (1.0 = baseline):
 ```
 
 ---
-
-## Common Tuning Scenarios
-
-### Scenario 1: More Conservative Demand (Pessimistic Market)
-```json
-// Reduce all demand_multiplier values by ~20%
-"demand_multiplier": 0.8  // was 1.0
-```
-
-### Scenario 2: Premium Focus (Higher Prices)
-```json
-// Reduce cheap tier demand, increase luxury tier markup
-"base_demand_monthly": 100  // was 200 for ultra_cheap
-"markup_multiplier": 1.2    // was 1.3 for luxury
-```
-
-### Scenario 3: Limited Warehouse (High Density Products)
-```json
-"warehouse_capacity_m3": 20.0  // was 40.0
-// Optimizer will prefer lighter/smaller items
-```
-
-### Scenario 4: Holiday Rush (Dec-Jan Peak)
-```json
-"seasonal_factors": {
-  "11": 1.7,   // Black Friday prep
-  "12": 2.0,   // Peak holiday sales
-  "1": 1.2,    // New Year sales
-  ...
-}
-```
-
----
-
-## No Python Edits Required
-
-Once configured correctly in `config.json`, run optimizers as-is:
-
-```bash
-python productcreator.py --filter-mode=aggressive
-python batch_optimizer.py product_candidates.json
-python filtered_optimizer.py
-```
-
-All configuration changes take effect immediately without code modification.

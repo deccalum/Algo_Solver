@@ -9,7 +9,6 @@ The optimizer generates a product catalog with full parameters and profitability
 ## Output Files
 
 ### CSV Catalog (`*_catalog.csv`)
-**Recommended for analysis** - Opens in Excel, easy to filter/sort
 
 | Column | Meaning | Why It Matters |
 |--------|---------|----------------|
@@ -154,9 +153,9 @@ Products Selected: 12
 ```
 
 **Analysis:**
-- ✅ Status is OPTIMAL = best possible solution found
-- ✅ $88k net profit seems reasonable for $36k budget (3 months × $12k)
-- ⚠️ Only 12 products selected - is this enough variety?
+- Status is OPTIMAL = best possible solution found
+- $88k net profit seems reasonable for $36k budget (3 months × $12k)
+- Only 12 products selected - is this enough variety?
 
 ### Top Product (P005113: $35,282 margin)
 ```
@@ -264,13 +263,6 @@ python src/main/filtered_optimizer.py --filter-mode aggressive \
 
 ### Step 2: Compare Results
 
-Open all CSV files in Excel side-by-side:
-```
-scenario_conservative.csv
-scenario_baseline.csv
-scenario_optimistic.csv
-```
-
 **Compare columns:**
 - `total_quantity_ordered` - Should increase with demand_multiplier
 - `total_margin` - Should increase proportionally
@@ -302,38 +294,11 @@ scenario_optimistic.csv
 
 ### If Results Seem Unrealistic:
 
-1. **Check constraint violations:**
-   - Open `optimization_results.json`
-   - Verify `status` field: is it truly OPTIMAL or just FEASIBLE?
+1. **Check constraint violations**
 
-2. **Run with stricter parameters:**
-   ```bash
-   python filtered_optimizer.py \
-     --filter-mode aggressive \
-     --budget 5000 \
-     --warehouse-capacity 20 \
-     --top-n 10
-   ```
+2. **Run with stricter parameters**
 
-3. **Enable solver debugging:**
-   - Add logging to spcplan.py
-   - Check solver warnings/infeasibility messages
-
-### If Results Seem Realistic:
-
-1. **Export to Java simulator:**
-   - Use CSV format for faster loading
-   - See INTEGRATION.md for Java import code
-
-2. **Run multi-month simulation:**
-   - Feed optimizer results into store.py
-   - Verify predicted profit matches actual simulation
-   - Track stock turnover, customer satisfaction, etc.
-
-3. **A/B test variants:**
-   - Run simulation with conservative_catalog.csv
-   - Run with aggressive_catalog.csv
-   - Compare financial metrics
+3. **Enable solver debugging**
 
 ---
 
