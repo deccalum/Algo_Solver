@@ -1,10 +1,8 @@
 """
 Product Parameter Optimization via Cartesian Product Enumeration
 
-Generates all feasible combinations of product parameters (price, weight, size, shipping)
-and evaluates each through the purchase optimizer to find optimal product designs.
+Generates all feasible combinations of product parameters.
 
-Configuration is passed as AppConfig dataclass parameter.
 """
 import itertools
 import os
@@ -45,7 +43,7 @@ class GenerationParams:
     #   3. Realistic buckets: [0-1g, 1-10g, 10-100g, 100-1kg, 1-10kg, ...]
     # DO NOT use until unit inconsistency is fixed.
     
-    # Weight in GRAMS (NOT kilograms!)
+    # Weight in grams
     weight_min: float = 2
     weight_max: float = 100_000
     weight_step: float = 2
@@ -116,7 +114,6 @@ def generate_weight_range(min_weight: float = 0.1, max_weight: float = 100, step
     3. Categorical: Real weight distribution by product type
     
     This dramatically impacts generate_all_product_candidates() output size.
-    Don't implement until weight unit inconsistency is fixed (grams vs kg).
     """
     weight_range = []
     current = min_weight
@@ -147,6 +144,7 @@ def generate_shipping_costs(freight_min: float = 1.0, freight_max: float = 5.0, 
 
 
 # ========== PRE-FILTER RULES ==========
+# evaluate these functions...
 
 def is_realistic_combination(price: float, weight_kg: float, size_cm3: float, 
                               density_min: float = 0.01, density_max: float = 10.0) -> bool:
