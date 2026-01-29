@@ -1,33 +1,37 @@
-# Shop Simulation & Optimization System
+# Algo Solver
 
-A system for simulating and optimizing store operations, (as of now) tries to find the best product mix for a limited space and budget, using a price-elastic demand model.
+## Architecture Overview
 
-## Expansion 
+The system uses a **Generator-Manager-Engine** architecture to decouple data generation from mathematical optimization.
 
-The **Cartesian Product Enumeration** *into* **Knapsack Solver** can be applied to...
+### 1. The Generator (`candidate_generator.py`)
 
-### SOLAR POWER PANELS Example
+**"The Creator"**
 
-* `max_battery`
-* `max_space`
-* `current`
-* `price`
-* `loan_amount`
-* `interest_rate`
-* `loan_term`
-* `panel_efficiency`
-* `sun_hours`
-* `panel_area`
-* `power_bill`
-* `energy_usage`
-* `energy_rate`
+- **Purpose**: Explores the entire theoretical parameter space defined in `parameter_core.json`.
+- **Function**: Combinatorially generates hundreds of thousands of potential product configurations (Price × Weight × Size).
+- **Logic**: Applies heuristic "Reality Checks" to discard physically impossible items (e.g., a 20kg item costing $1).
+- **Output**: Produces the raw pool of candidates (`product_candidates.csv`).
 
-## System Components
+### 2. The Manager (`optimization_manager.py`)
 
-## Workflow
+**"The Boss"**
 
-1. **Generation**
-2. **Optimization**
-3. **Simulation**
+- **Purpose**: Orchestrates the workflow and manages resources.
+- **Function**:
+  1. Reads the parameter core for settings.
+  2. Loads candidates and applies a "Smart Filter" to select the top candidates (Top-N) to ensure the solver completes in reasonable time.
+  3. Hires the **Engine** to perform the complex math.
+- **Result**: Exports the final optimized catalog and purchase orders.
 
-## Documentation
+### 3. The Engine (`optimization_engine.py`)
+
+**"The Brain"**
+
+- **Purpose**: Pure mathematical optimization using **Google OR-Tools** (SCIP Solver).
+- **Logic**:
+  - **Objective**: "Maximize Profit".
+    $$ \text{Maximize} \sum ((\text{Retail} - \text{Wholesale}) \times \text{Qty}) - \text{Shipping} - \text{Duties} $$
+  - **Constraints**: Translates physical limits into strict math.
+    $$ \sum (\text{Size} \times \text{Qty}) \le \text{Warehouse Capacity} $$
+  - **Time Awareness**: Creates variables for every month (e.g., `q_P001_Month1`, `q_P001_Month2`), enabling seasonal planning (e.g. stocking up in October for December sales).

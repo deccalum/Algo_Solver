@@ -1,0 +1,75 @@
+{
+  "meta_info": {
+    "version": "1.1",
+    "description": "Master Configuration with Smart Buckets"
+  },
+  "generation_parameters": {
+    "price_usd": [
+      { "start": 1, "end": 100, "step": 5 },
+      { "start": 100, "end": 1000, "step": 50 },
+      { "start": 1000, "end": 10000, "step": 500 }
+    ],
+    "weight_kg": [
+      { "start": 0.005, "end": 0.1, "step": 0.005 },
+      { "start": 0.1, "end": 2.0, "step": 0.1 },
+      { "start": 2.0, "end": 50.0, "step": 1.0 }
+    ],
+    "size_cm3": [
+      { "start": 10, "end": 1000, "step": 50 },
+      { "start": 1000, "end": 10000, "step": 500 },
+      { "start": 10000, "end": 50000, "step": 2500 }
+    ],
+    "shipping_multiplier": [
+      { "start": 1.0, "end": 5.0, "step": 1.0 }
+    ],
+    "constraints": {
+        "density_kg_l": { "min": 0.01, "max": 10.0 }
+    }
+  },
+  "economics": {
+    "markup_tiers": [
+      { "min_wholesale": 0, "markup_percent": 2.00 },
+      { "min_wholesale": 50, "markup_percent": 1.50 },
+      { "min_wholesale": 100, "markup_percent": 1.25 },
+      { "min_wholesale": 500, "markup_percent": 1.00 },
+      { "min_wholesale": 1000, "markup_percent": 0.75 },
+      { "min_wholesale": 3000, "markup_percent": 0.50 }
+    ],
+    "demand_model": {
+      "base_monthly": 100,
+      "tiers": [
+        { "max_price": 50, "demand": 320 },
+        { "max_price": 100, "demand": 280 },
+        { "max_price": 500, "demand": 240 },
+        { "max_price": 1000, "demand": 200 },
+        { "max_price": 3000, "demand": 160 },
+        { "max_price": 5000, "demand": 120 },
+        { "max_price": 999999, "demand": 80 }
+      ]
+    },
+    "seasonal_factors": {
+      "jan": 1.0, "feb": 0.95, "mar": 1.05, "apr": 1.10, "may": 1.15, "jun": 1.20,
+      "jul": 1.25, "aug": 1.20, "sep": 1.10, "oct": 1.05, "nov": 1.00, "dec": 1.30
+    }
+  },
+  "logistics": {
+    "shipping": {
+      "cost_per_kg": 3.5,
+      "cost_per_m3": 80.0,
+      "max_weight_kg": 800.0,
+      "max_volume_m3": 15.0,
+      "crosses_border": true,
+      "customs_duty_rate": 0.12,
+      "days_transit": 3
+    },
+    "warehouse": {
+      "capacity_m3": 40.0,
+      "monthly_budget": 12000.0
+    }
+  },
+  "system_paths": {
+    "data_output": "../data/output",
+    "product_candidates_csv": "product_candidates.csv",
+    "final_catalog_csv": "final_catalog.csv"
+  }
+}

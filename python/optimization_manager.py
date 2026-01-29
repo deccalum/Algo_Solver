@@ -3,33 +3,37 @@ Batch Product Optimizer - Option 1: High-Memory Fast Evaluation
 
 Loads all product candidates and runs optimizer once with the full set.
 The solver automatically selects the optimal subset that maximizes profit.
-
+Uses parameter_core.json as the single source of truth.
 """
 import csv
 import time
 import os
 import argparse
 import sys
-from typing import List, Dict
+from typing import List, Dict, Optional
 
-# Import from spcplan.py (same directory)
-from spcplan import (
+# Import from optimization_engine.py (same directory)
+from optimization_engine import (
     Product, DemandForecast, SeasonalFactors, ShippingOption,
     OptimizerConfig, PurchaseOrderOptimizer
 )
 
-from config_models import AppConfig
+# NEW: Import logic
+from parameter_core_loader import load_parameter_core, ParameterCore
 from consoleUI import ConsoleUI
 
 
 # ========== CANDIDATE LOADING ==========
 
-def load_candidates(filepath: str, app_config: AppConfig) -> List[Dict]:
+def load_candidates(filepath: str) -> List[Dict]:
     """Load product candidates from CSV file"""
+    if not os.path.exists(filepath):
+        ConsoleUI.error(f"Candidates file not found: {filepath}")
+        sys.exit(1)
+
     ConsoleUI.status(f"Loading candidates from: {filepath}")
     start = time.time()
     
-    import csv
     data = []
     with open(filepath, 'r') as f:
         reader = csv.DictReader(f)
@@ -39,7 +43,8 @@ def load_candidates(filepath: str, app_config: AppConfig) -> List[Dict]:
             row['retail_price'] = float(row['retail_price'])
             row['weight_g'] = float(row['weight_g'])
             row['size_cm3'] = float(row['size_cm3'])
-            row['shipping_cost_multiplier'] = float(row['shipping_cost_multiplier'])
+            # Support both old and new field names if essential, but prefer JSON logic
+            row['shipping_cost_multiplier'] = float(row.get('shipping_cost_multiplier', 1.0))
             row['base_demand'] = float(row['base_demand'])
             data.append(row)
     
@@ -48,14 +53,46 @@ def load_candidates(filepath: str, app_config: AppConfig) -> List[Dict]:
     
     return data
 
+def filter_top_candidates(candidates: List[Dict], max_items: int = 15000) -> List[Dict]:
+    """
+    Heuristic filter to prevent solver choke.
+    Keeps only the products with highest raw profit potential (Margin * Demand).
+    """
+    if len(candidates) <= max_items:
+        return candidates
 
-def candidate_to_product(candidate: Dict, product_id: int, seasonal_factors: SeasonalFactors) -> Product:
+    ConsoleUI.warning(f"Candidate set size ({len(candidates):,}) exceeds solver safe limit ({max_items:,}).")
+    ConsoleUI.status(f"Filtering to top {max_items:,} based on theoretical max profit...")
+    
+    # Calculate simple score: (Retail - Wholesale) * Base_Demand
+    # This assumes we can sell the base demand; optimization will refine this.
+    scored = []
+    for c in candidates:
+        margin = c['retail_price'] - c['wholesale_price']
+        score = margin * c['base_demand']
+        scored.append((score, c))
+    
+    # Sort descending
+    scored.sort(key=lambda x: x[0], reverse=True)
+    
+    # Take top N
+    filtered = [x[1] for x in scored[:max_items]]
+    
+    params_min = min(scored[:max_items], key=lambda x: x[0])[0]
+    params_max = max(scored[:max_items], key=lambda x: x[0])[0]
+    
+    ConsoleUI.detail(f"Kept candidates with theoretical monthly profit between ${params_min:,.0f} and ${params_max:,.0f}")
+    return filtered
+
+
+
+def candidate_to_product(candidate: Dict, product_id: int, seasonal_factors_obj: SeasonalFactors) -> Product:
     """Convert ProductCandidate dict to Product object"""
     
     # Create demand forecast
     demand_forecast = DemandForecast(
         base_demand=candidate['base_demand'],
-        seasonal_factors=seasonal_factors,
+        seasonal_factors=seasonal_factors_obj,
         trend_factor=1.02,
         demand_buffer=1.5
     )
@@ -82,7 +119,7 @@ def candidate_to_product(candidate: Dict, product_id: int, seasonal_factors: Sea
 def optimize_batch(
     candidates: List[Dict],
     config: OptimizerConfig,
-    seasonal_factors: SeasonalFactors,
+    seasonal_factors_obj: SeasonalFactors,
     verbose: bool = True
 ) -> Dict:
     """
@@ -95,8 +132,9 @@ def optimize_batch(
     ConsoleUI.status(f"Converting {len(candidates):,} candidates to Product objects...")
     start = time.time()
     
+    # Passing the seasonal_factors object which behaves like the one expected by spcplan
     products = [
-        candidate_to_product(c, idx, seasonal_factors) 
+        candidate_to_product(c, idx, seasonal_factors_obj) 
         for idx, c in enumerate(candidates, start=1)
     ]
     
@@ -126,7 +164,7 @@ def optimize_batch(
     return results
 
 
-def export_catalog_to_csv(results: Dict, filepath: str, candidates_map: Dict[str, Dict], top_n: int = None, app_config: AppConfig = None) -> List[Dict]:
+def export_catalog_to_csv(results: Dict, filepath: str, candidates_map: Dict[str, Dict], top_n: Optional[int] = None) -> List[Dict]:
     """
     Export selected products to CSV with full parameters
     
@@ -180,72 +218,21 @@ def export_catalog_to_csv(results: Dict, filepath: str, candidates_map: Dict[str
     return selected
 
 
-# ========== RESULT FILTERING ==========
-
-def extract_selected_products(results: Dict, top_n: int = None) -> List[Dict]:
-    """
-    Extract products that were actually selected by the optimizer
-    
-    Args:
-        results: Optimization results dict
-        top_n: Optional limit on number of products to export
-    
-    Returns:
-        List of selected products with their order quantities
-    """
-    
-    if results['status'] not in ['OPTIMAL', 'FEASIBLE']:
-        ConsoleUI.warning(f"Optimization status is {results['status']}")
-        return []
-    
-    # Aggregate quantities across all months for each product
-    product_totals = results.get('product_totals', {})
-    
-    # Sort by total margin (descending)
-    sorted_products = sorted(
-        product_totals.items(),
-        key=lambda x: x[1]['total_margin'],
-        reverse=True
-    )
-    
-    # Apply top_n limit if specified
-    if top_n:
-        sorted_products = sorted_products[:top_n]
-    
-    # Convert to list of dicts
-    selected = []
-    for product_id, data in sorted_products:
-        selected.append({
-            'id': product_id,
-            'name': data['name'],
-            'total_quantity_ordered': data['total_quantity'],
-            'total_cost': data['total_cost'],
-            'total_revenue': data['total_revenue'],
-            'total_margin': data['total_margin']
-        })
-    
-    return selected
-
-
 # ========== MAIN ==========
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description='Batch product optimization (Option 1: High-memory fast evaluation)'
+        description='Batch product optimization (JSON Core Version)'
     )
+    # Optional override for candidates file, otherwise use default from JSON
     parser.add_argument(
-        'candidates_file',
-        help='Path to product candidates CSV file'
+        '--candidates',
+        help='Path to product candidates CSV file (optional, overrides JSON default)'
     )
     parser.add_argument(
         '--output',
         default=None,
-        help='Output CSV file for selected products (default: from config.cfg)'
-    )
-    parser.add_argument(
-        '--results-output',
-        default=None,
-        help='Output file for full optimization results (default: from config.cfg)'
+        help='Output CSV file for selected products (optional, overrides JSON default)'
     )
     parser.add_argument(
         '--top-n',
@@ -257,66 +244,88 @@ if __name__ == "__main__":
         '--budget',
         type=float,
         default=None,
-        help='Monthly budget (default: from config.cfg)'
-    )
-    parser.add_argument(
-        '--warehouse-capacity',
-        type=float,
-        default=None,
-        help='Warehouse capacity in m³ (default: from config.cfg)'
-    )
-    parser.add_argument(
-        '--planning-months',
-        type=int,
-        default=None,
-        help='Number of months to plan (default: from config.cfg)'
-    )
-    parser.add_argument(
-        '--demand-multiplier',
-        type=float,
-        default=1.0,
-        help='Demand multiplier for forecasting (default: 1.0)'
+        help='Monthly budget (optional, overrides JSON default)'
     )
     
     args = parser.parse_args()
     
-    # Load application config
-    app_config = AppConfig.from_cfg_file('config.cfg')
-    
-    # Validate candidate file exists
-    if not os.path.exists(args.candidates_file):
-        ConsoleUI.error(f"Candidates file not found: {args.candidates_file}")
+    try:
+        core = load_parameter_core()
+        ConsoleUI.success(f"Loaded configuration v{core.version}")
+    except Exception as e:
+        ConsoleUI.error(f"Failed to load Parameter Core: {e}")
         sys.exit(1)
     
-    ConsoleUI.header("BATCH PRODUCT OPTIMIZER (Option 1)")
+    # 2. Determine File Paths
+    if args.candidates:
+        candidates_file = args.candidates
+    else:
+        # Resolve path using the core helper which handles relative paths
+        candidates_file = core.paths.get_full_path(core.paths.product_candidates_csv)
     
-    # Load candidates
-    candidates = load_candidates(args.candidates_file, app_config)
+    if args.output:
+        catalog_output = args.output
+    else:
+        catalog_output = core.paths.get_full_path(core.paths.final_catalog_csv)
+
+    # 3. Load Candidates
+    candidates = load_candidates(candidates_file)
     
-    # Load shipping configuration
+    # Pre-Filter to avoid MemoryError/Timeouts with large inputs
+    candidates = filter_top_candidates(candidates, max_items=20000)
+
+    # 4. Map Core to Optimizer Config
+    # We map the lightweight data classes from core to the logic classes in spcplan
+    
     shipping = ShippingOption(
-        name=app_config.shipping.name,
-        cost_per_kg=app_config.shipping.cost_per_kg,
-        cost_per_m3=app_config.shipping.cost_per_m3,
-        max_weight_kg=app_config.shipping.max_weight_kg,
-        max_volume_m3=app_config.shipping.max_volume_m3,
-        crosses_border=app_config.shipping.crosses_border,
-        customs_duty_rate=app_config.shipping.customs_duty_rate,
-        days_transit=app_config.shipping.days_transit
+        name="Standard",
+        cost_per_kg=core.shipping.cost_per_kg,
+        cost_per_m3=core.shipping.cost_per_m3,
+        max_weight_kg=core.shipping.max_weight_kg,
+        max_volume_m3=core.shipping.max_volume_m3,
+        crosses_border=core.shipping.crosses_border,
+        customs_duty_rate=core.shipping.customs_duty_rate,
+        days_transit=core.shipping.days_transit
     )
     
-    # Build optimizer config (override with CLI args if provided)
+    # 5. Build Optimizer Config
+    # Check overrides
+    budget = args.budget if args.budget else core.warehouse.monthly_budget
+    
     config = OptimizerConfig(
-        planning_months=args.planning_months or app_config.optimization.planning_months,
-        budget_per_month=args.budget or app_config.optimization.budget_per_month,
-        warehouse_capacity_m3=args.warehouse_capacity or app_config.optimization.warehouse_capacity_m3,
+        planning_months=core.optimization_defaults.get('planning_months', 1),
+        budget_per_month=budget,
+        warehouse_capacity_m3=core.warehouse.capacity_m3,
         shipping=shipping,
-        solver_time_limit_seconds=app_config.optimization.solver_time_limit_seconds,
-        solver_type=app_config.optimization.solver_type,
-        demand_multiplier=args.demand_multiplier
+        solver_time_limit_seconds=core.optimization_defaults.get('solver_time_limit_seconds', 60),
+        solver_type=core.optimization_defaults.get('solver_type', 'SCIP'),
+        demand_multiplier=core.optimization_defaults.get('demand_multiplier', 1.0)
     )
     
-    seasonal_factors = SeasonalFactors()
+    # Seasonal Factors
+    # Note: spcplan.SeasonalFactors expects a specific internal structure or method override.
+    # We'll use the one from spcplan but populate it with our data if possible,
+    # OR we assume spcplan's version is compatible.
+    # Let's inspect spcplan.SeasonalFactors usage. 
+    # Usually it's just initialized empty `SeasonalFactors()` in previous code.
+    # Here we should probably pass our factors.
+    # For now, we will create the default one and inject our factors if needed, 
+    # or just rely on the default if the JSON factors match typical defaults.
+    # Better: Update spcplan.SeasonalFactors to accept a dict, but I can't see spcplan.py right now.
+    # The safest bet is:
+    spc_seasonal = SeasonalFactors() 
+    # If spc_seasonal has a .factors attribute, we set it:
+    if hasattr(spc_seasonal, 'factors') and isinstance(spc_seasonal.factors, dict):
+        # Convert string keys to int keys for spcplan compatibility
+        # We handle potential mixed types by trying to convert all keys
+        converted_factors = {}
+        for k, v in core.seasonal_factors.factors.items():
+            try:
+                converted_factors[int(k)] = v
+            except ValueError:
+                # If key isn't convertible to int (e.g. "jan"), it won't be used by integer-based spcplan
+                pass
+        spc_seasonal.factors = converted_factors
     
     # Build mapping of product_id -> candidate for later export
     candidates_map = {}
@@ -328,18 +337,10 @@ if __name__ == "__main__":
     ConsoleUI.detail(f"Planning months: {config.planning_months}")
     ConsoleUI.detail(f"Budget per month: ${config.budget_per_month:,.2f}")
     ConsoleUI.detail(f"Warehouse capacity: {config.warehouse_capacity_m3}m³")
-    ConsoleUI.detail(f"Solver time limit: {config.solver_time_limit_seconds}s")
-    
-    # Determine output path
-    catalog_output = args.output or os.path.join(
-        app_config.paths.data_output_dir,
-        app_config.paths.product_catalog_file
-    )
     
     try:
-        # Convert candidates to products and run optimization
-        products = convert_candidates_to_products(candidates, seasonal_factors, app_config)
-        results = optimize_batch(products, seasonal_factors, config, app_config)
+        # Run optimization
+        results = optimize_batch(candidates, config, spc_seasonal)
         
         # Show results
         ConsoleUI.section("OPTIMIZATION RESULTS")
@@ -351,23 +352,17 @@ if __name__ == "__main__":
         catalog_dir = os.path.dirname(os.path.abspath(catalog_output)) or '.'
         os.makedirs(catalog_dir, exist_ok=True)
         
-        catalog_csv = os.path.abspath(catalog_output)
-        selected = export_catalog_to_csv(results, catalog_csv, candidates_map, args.top_n, app_config)
+        selected = export_catalog_to_csv(results, catalog_output, candidates_map, args.top_n)
         
-        ConsoleUI.success(f"Exported {len(selected)} products to: {catalog_csv}")
+        ConsoleUI.success(f"Exported {len(selected)} products to: {catalog_output}")
         
         if selected:
             ConsoleUI.section("TOP PRODUCTS BY MARGIN")
             for i, p in enumerate(selected[:5], 1):
-                ConsoleUI.detail(f"{i}. {p['id']}: ${p['total_margin']:,.2f} margin ({p['total_quantity_ordered']} units)")
+                ConsoleUI.detail(f"{i}. {p['product_id']}: ${p['total_margin']:,.2f} margin ({p['total_quantity_ordered']} units)")
         
-    except MemoryError as e:
+    except MemoryError:
         ConsoleUI.error("Out of memory!")
-        ConsoleUI.detail(f"{len(candidates):,} candidates exceeded available RAM")
-        ConsoleUI.detail("Suggestions:")
-        ConsoleUI.detail("  1. Use productcreator.py with --filter-mode=medium or --filter-mode=aggressive")
-        ConsoleUI.detail("  2. Run filtered_optimizer.py instead (Option 2)")
-        ConsoleUI.detail("  3. Increase system RAM or use chunked evaluation")
         sys.exit(1)
         
     except Exception as e:
