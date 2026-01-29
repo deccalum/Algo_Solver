@@ -12,7 +12,7 @@ class SeasonalFactors:
     factors: Dict[int, float] = field(default_factory=dict)
 
     def get(self, month: int) -> float:
-        return self.factors.get(month, 1.0)
+        return self.factors[month]
 
 @dataclass
 class DemandForecast:
@@ -58,7 +58,7 @@ class OptimizerConfig:
     budget_per_month: float
     warehouse_capacity_m3: float
     shipping: ShippingOption
-    solver_time_limit_seconds: int = 300
+    solver_time_limit_seconds: int = 9000
     solver_type: str = 'SCIP'
     demand_multiplier: float = 1.0
 
@@ -74,6 +74,18 @@ class PurchaseOrderOptimizer:
 
         # Set time limit
         solver.SetTimeLimit(self.config.solver_time_limit_seconds * 1000)
+        
+        # SCIP-specific parameters for large-scale problems
+        if self.config.solver_type == 'SCIP':
+            # Increase memory limit (in MB) - default is often limited
+            # Allow up to 16GB for large problems
+            solver.SetSolverSpecificParametersAsString("limits/memory = 16384")
+            
+            # Use parallel processing if available
+            # solver.SetSolverSpecificParametersAsString("parallel/maxnthreads = 0")  # 0 = auto-detect
+            
+            # Adjust presolving aggressiveness for large problems
+            solver.SetSolverSpecificParametersAsString("presolving/maxrounds = -1")  # -1 = unlimited
 
         try:
             self._create_variables(solver, products)
@@ -140,7 +152,7 @@ class PurchaseOrderOptimizer:
             pywraplp.Solver.UNBOUNDED: 'UNBOUNDED',
             pywraplp.Solver.ABNORMAL: 'ABNORMAL'
         }
-        status = status_map.get(status_code, 'UNKNOWN')
+        status = status_map[status_code]
         
         result = {
             'status': status,

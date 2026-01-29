@@ -25,7 +25,7 @@ class SeasonalFactors:
     factors: Dict[str, float]
     
     def get(self, month: str) -> float:
-        return self.factors.get(month.lower(), 1.0)
+        return self.factors[month.lower()]
 
 @dataclass
 class ShippingConfig:
@@ -122,14 +122,8 @@ def load_parameter_core(json_path: str = DEFAULT_CORE_PATH) -> ParameterCore:
             final_catalog_csv=sys_paths['final_catalog_csv']
         )
         
-        # 5. Optimization Defaults (Hardcoded or derived if not in JSON v1.1)
-        # We might want to add these to JSON v1.2 later
-        optimization_defaults = {
-            'planning_months': 12,
-            'solver_time_limit_seconds': 60,
-            'solver_type': 'SCIP',
-            'demand_multiplier': 1.0
-        }
+        # 5. Optimization Defaults
+        optimization_defaults = data['optimization_defaults']
         
         return ParameterCore(
             version=version,

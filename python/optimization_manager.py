@@ -12,6 +12,12 @@ import argparse
 import sys
 from typing import List, Dict, Optional
 
+try:
+    from tqdm import tqdm
+    HAS_TQDM = True
+except ImportError:
+    HAS_TQDM = False
+
 # Import from optimization_engine.py (same directory)
 from optimization_engine import (
     Product, DemandForecast, SeasonalFactors, ShippingOption,
@@ -43,8 +49,7 @@ def load_candidates(filepath: str) -> List[Dict]:
             row['retail_price'] = float(row['retail_price'])
             row['weight_g'] = float(row['weight_g'])
             row['size_cm3'] = float(row['size_cm3'])
-            # Support both old and new field names if essential, but prefer JSON logic
-            row['shipping_cost_multiplier'] = float(row.get('shipping_cost_multiplier', 1.0))
+            row['shipping_multiplier'] = float(row['shipping_multiplier'])
             row['base_demand'] = float(row['base_demand'])
             data.append(row)
     
@@ -59,20 +64,29 @@ def filter_top_candidates(candidates: List[Dict], max_items: int = 15000) -> Lis
     Keeps only the products with highest raw profit potential (Margin * Demand).
     """
     if len(candidates) <= max_items:
+        ConsoleUI.status(f"No filtering needed: {len(candidates):,} candidates <= {max_items:,} limit")
         return candidates
 
-    ConsoleUI.warning(f"Candidate set size ({len(candidates):,}) exceeds solver safe limit ({max_items:,}).")
+    ConsoleUI.warning(f"Candidate set size ({len(candidates):,}) exceeds filter limit ({max_items:,}).")
     ConsoleUI.status(f"Filtering to top {max_items:,} based on theoretical max profit...")
     
     # Calculate simple score: (Retail - Wholesale) * Base_Demand
     # This assumes we can sell the base demand; optimization will refine this.
     scored = []
-    for c in candidates:
+    
+    # Use tqdm for progress if available
+    iterator = tqdm(candidates, desc="Scoring candidates", unit="products") if HAS_TQDM else candidates
+    if not HAS_TQDM:
+        ConsoleUI.detail(f"Scoring {len(candidates):,} candidates...")
+    
+    for c in iterator:
         margin = c['retail_price'] - c['wholesale_price']
         score = margin * c['base_demand']
         scored.append((score, c))
     
     # Sort descending
+    if HAS_TQDM:
+        ConsoleUI.detail("Sorting candidates by score...")
     scored.sort(key=lambda x: x[0], reverse=True)
     
     # Take top N
@@ -145,7 +159,7 @@ def optimize_batch(
     ConsoleUI.status("Initializing optimizer...")
     optimizer = PurchaseOrderOptimizer(config)
     
-    ConsoleUI.status("Running optimization (this may take 5-30 minutes for large sets)...")
+    ConsoleUI.status("Running optimization...")
     opt_start = time.time()
     
     results = optimizer.optimize(products)
@@ -175,7 +189,7 @@ def export_catalog_to_csv(results: Dict, filepath: str, candidates_map: Dict[str
     if results['status'] not in ['OPTIMAL', 'FEASIBLE']:
         return []
     
-    product_totals = results.get('product_totals', {})
+    product_totals = results['product_totals']
     sorted_products = sorted(
         product_totals.items(),
         key=lambda x: x[1]['total_margin'],
@@ -190,23 +204,23 @@ def export_catalog_to_csv(results: Dict, filepath: str, candidates_map: Dict[str
     with open(filepath, 'w', newline='') as f:
         fieldnames = [
             'product_id', 'name', 'wholesale_price', 'retail_price',
-            'weight_g', 'size_cm3', 'shipping_cost_multiplier', 'base_demand',
+            'weight_g', 'size_cm3', 'shipping_multiplier', 'base_demand',
             'total_quantity_ordered', 'total_cost', 'total_revenue', 'total_margin'
         ]
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         
         for product_id, data in sorted_products:
-            candidate = candidates_map.get(product_id, {})
+            candidate = candidates_map[product_id]
             row = {
                 'product_id': product_id,
                 'name': data['name'],
-                'wholesale_price': candidate.get('wholesale_price', 'N/A'),
-                'retail_price': candidate.get('retail_price', 'N/A'),
-                'weight_g': candidate.get('weight_g', 'N/A'),
-                'size_cm3': candidate.get('size_cm3', 'N/A'),
-                'shipping_cost_multiplier': candidate.get('shipping_cost_multiplier', 'N/A'),
-                'base_demand': candidate.get('base_demand', 'N/A'),
+                'wholesale_price': candidate['wholesale_price'],
+                'retail_price': candidate['retail_price'],
+                'weight_g': candidate['weight_g'],
+                'size_cm3': candidate['size_cm3'],
+                'shipping_multiplier': candidate['shipping_multiplier'],
+                'base_demand': candidate['base_demand'],
                 'total_quantity_ordered': data['total_quantity'],
                 'total_cost': round(data['total_cost'], 2),
                 'total_revenue': round(data['total_revenue'], 2),
@@ -272,10 +286,12 @@ if __name__ == "__main__":
     candidates = load_candidates(candidates_file)
     
     # Pre-Filter to avoid MemoryError/Timeouts with large inputs
-    candidates = filter_top_candidates(candidates, max_items=20000)
+    max_filter = core.optimization_defaults['max_candidates_filter']
+    ConsoleUI.detail(f"Max candidates filter limit: {max_filter:,}")
+    candidates = filter_top_candidates(candidates, max_items=max_filter)
 
     # 4. Map Core to Optimizer Config
-    # We map the lightweight data classes from core to the logic classes in spcplan
+    # We map the lightweight data classes from core to the logic classes in optimization_engine
     
     shipping = ShippingOption(
         name="Standard",
@@ -293,39 +309,28 @@ if __name__ == "__main__":
     budget = args.budget if args.budget else core.warehouse.monthly_budget
     
     config = OptimizerConfig(
-        planning_months=core.optimization_defaults.get('planning_months', 1),
+        planning_months=core.optimization_defaults['planning_months'],
         budget_per_month=budget,
         warehouse_capacity_m3=core.warehouse.capacity_m3,
         shipping=shipping,
-        solver_time_limit_seconds=core.optimization_defaults.get('solver_time_limit_seconds', 60),
-        solver_type=core.optimization_defaults.get('solver_type', 'SCIP'),
-        demand_multiplier=core.optimization_defaults.get('demand_multiplier', 1.0)
+        solver_time_limit_seconds=core.optimization_defaults['solver_time_limit_seconds'],
+        solver_type=core.optimization_defaults['solver_type'],
+        demand_multiplier=core.optimization_defaults['demand_multiplier']
     )
     
     # Seasonal Factors
-    # Note: spcplan.SeasonalFactors expects a specific internal structure or method override.
-    # We'll use the one from spcplan but populate it with our data if possible,
-    # OR we assume spcplan's version is compatible.
-    # Let's inspect spcplan.SeasonalFactors usage. 
-    # Usually it's just initialized empty `SeasonalFactors()` in previous code.
-    # Here we should probably pass our factors.
-    # For now, we will create the default one and inject our factors if needed, 
-    # or just rely on the default if the JSON factors match typical defaults.
-    # Better: Update spcplan.SeasonalFactors to accept a dict, but I can't see spcplan.py right now.
-    # The safest bet is:
     spc_seasonal = SeasonalFactors() 
-    # If spc_seasonal has a .factors attribute, we set it:
-    if hasattr(spc_seasonal, 'factors') and isinstance(spc_seasonal.factors, dict):
-        # Convert string keys to int keys for spcplan compatibility
-        # We handle potential mixed types by trying to convert all keys
-        converted_factors = {}
-        for k, v in core.seasonal_factors.factors.items():
-            try:
-                converted_factors[int(k)] = v
-            except ValueError:
-                # If key isn't convertible to int (e.g. "jan"), it won't be used by integer-based spcplan
-                pass
-        spc_seasonal.factors = converted_factors
+    
+    # Map month names to integers for optimization engine
+    month_map = {
+        'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
+        'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12
+    }
+    
+    spc_seasonal.factors = {
+        month_map[k.lower()]: v 
+        for k, v in core.seasonal_factors.factors.items()
+    }
     
     # Build mapping of product_id -> candidate for later export
     candidates_map = {}
@@ -345,8 +350,13 @@ if __name__ == "__main__":
         # Show results
         ConsoleUI.section("OPTIMIZATION RESULTS")
         ConsoleUI.detail(f"Status: {results['status']}")
+        
+        if results['status'] == 'ERROR':
+            ConsoleUI.error(f"Optimization failed: {results['message']}")
+            sys.exit(1)
+        
         ConsoleUI.metric("Objective Value", results['objective_value'], "$")
-        ConsoleUI.metric("Products Selected", len(results.get('product_totals', {})))
+        ConsoleUI.metric("Products Selected", len(results['product_totals']))
         
         # Export catalog
         catalog_dir = os.path.dirname(os.path.abspath(catalog_output)) or '.'

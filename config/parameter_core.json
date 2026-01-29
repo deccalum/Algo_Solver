@@ -71,5 +71,12 @@
     "data_output": "../data/output",
     "product_candidates_csv": "product_candidates.csv",
     "final_catalog_csv": "final_catalog.csv"
+  },
+  "optimization_defaults": {
+    "planning_months": 2,
+    "solver_time_limit_seconds": 900000,
+    "solver_type": "SCIP",
+    "demand_multiplier": 1.0,
+    "max_candidates_filter": 1000000
   }
 }

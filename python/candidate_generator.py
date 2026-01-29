@@ -22,7 +22,7 @@ def load_parameter_core() -> Dict[str, Any]:
     print(f"Loading core from: {CORE_FILE}")
     with open(CORE_FILE, 'r') as f:
         data = json.load(f)
-        print(f"Loaded version: {data.get('meta_info', {}).get('version', 'unknown')}")
+        print(f"Loaded version: {data['meta_info']['version']}")
         return data
 
 # ========== LOGIC ==========
@@ -34,8 +34,9 @@ def estimate_retail_price(wholesale: float, economics: Dict) -> float:
     for tier in tiers:
         if wholesale >= tier['min_wholesale']:
             return wholesale * (1 + tier['markup_percent'])
-            
-    return wholesale * 1.5 # fallback
+    
+    # Coverage: tiers always include min_wholesale=0, so this is unreachable
+    assert False, "Tier structure invalid: no matching tier found"
 
 def estimate_base_demand(wholesale: float, economics: Dict) -> float:
     """Calculate demand based on price tiers from JSON"""
@@ -44,8 +45,9 @@ def estimate_base_demand(wholesale: float, economics: Dict) -> float:
     for tier in tiers:
         if wholesale <= tier['max_price']:
             return tier['demand']
-            
-    return economics['demand_model']['tiers'][-1]['demand']
+    
+    # Coverage: tiers always include max_price=999999, so this is unreachable
+    assert False, "Tier structure invalid: no matching tier found"
 
 def is_realistic_combination(price: float, weight_kg: float, size_cm3: float, 
                               density_min: float = 0.01, density_max: float = 10.0) -> bool:
