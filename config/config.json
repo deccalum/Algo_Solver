@@ -72,6 +72,49 @@
     "product_candidates_csv": "product_candidates.csv",
     "final_catalog_csv": "final_catalog.csv"
   },
+  "field_definitions": {
+    "default_template": "generic_product",
+    "product": [
+      { "name": "product_id", "type": "string", "enabled": true },
+      { "name": "name", "type": "string", "enabled": true },
+      { "name": "wholesale_price", "type": "number", "enabled": true },
+      { "name": "retail_price", "type": "number", "enabled": true },
+      { "name": "weight_g", "type": "number", "enabled": true },
+      { "name": "size_cm3", "type": "number", "enabled": true },
+      { "name": "shipping_multiplier", "type": "number", "enabled": true },
+      { "name": "base_demand", "type": "number", "enabled": true },
+      { "name": "total_quantity_ordered", "type": "number", "enabled": true },
+      { "name": "total_cost", "type": "number", "enabled": true },
+      { "name": "total_revenue", "type": "number", "enabled": true },
+      { "name": "total_margin", "type": "number", "enabled": true }
+    ]
+  },
+  "templates": {
+    "generic_product": [
+      "product_id",
+      "name",
+      "wholesale_price",
+      "retail_price",
+      "weight_g",
+      "size_cm3",
+      "shipping_multiplier",
+      "base_demand",
+      "total_quantity_ordered",
+      "total_cost",
+      "total_revenue",
+      "total_margin"
+    ]
+  },
+  "python": {
+    "enabled": false,
+    "interpreter": "python",
+    "scripts": {
+      "optimization_manager": "python/optimization_manager.py"
+    },
+    "args": {
+      "optimization_manager": []
+    }
+  },
   "optimization_defaults": {
     "planning_months": 2,
     "solver_time_limit_seconds": 900000,

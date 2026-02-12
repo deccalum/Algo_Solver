@@ -3,7 +3,7 @@ Batch Product Optimizer - Option 1: High-Memory Fast Evaluation
 
 Loads all product candidates and runs optimizer once with the full set.
 The solver automatically selects the optimal subset that maximizes profit.
-Uses parameter_core.json as the single source of truth.
+Uses config.json as the single source of truth.
 """
 import csv
 import time

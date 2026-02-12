@@ -5,13 +5,19 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+
+import config.Config;
+import service.FieldRegistry;
 
 public class CsvReader {
 
     private final FileImporter importer;
+    private final FieldRegistry fieldRegistry;
 
     public CsvReader() {
         this.importer = new FileImporter();
+        this.fieldRegistry = new FieldRegistry(new Config());
     }
 
     public List<DynamicModel> read(String fileKey) throws IOException {
@@ -32,6 +38,9 @@ public class CsvReader {
             headers[i] = headers[i].trim();
         }
 
+        Set<String> templateFields = fieldRegistry.getDefaultTemplateFields();
+        boolean useTemplate = !templateFields.isEmpty();
+
         List<DynamicModel> models = new ArrayList<>();
 
         // 2. Parse Data Rows
@@ -45,8 +54,15 @@ public class CsvReader {
             DynamicModel model = new DynamicModel();
 
             for (int h = 0; h < headers.length; h++) {
+                String header = headers[h];
+                if (useTemplate && !templateFields.contains(header)) {
+                    continue;
+                }
+                if (!fieldRegistry.isEnabled(header)) {
+                    continue;
+                }
                 String value = (h < values.length) ? values[h].trim() : "";
-                model.set(headers[h], value);
+                model.set(header, value);
             }
             models.add(model);
         }

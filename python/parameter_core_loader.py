@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from typing import List, Dict, Optional
 
 # Constants
-DEFAULT_CORE_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config', 'parameter_core.json')
+DEFAULT_CORE_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config', 'config.json')
 
 @dataclass
 class MarkupTier:
@@ -50,11 +50,11 @@ class PathConfig:
     
     def get_full_path(self, filename: str, core_file_path: str = DEFAULT_CORE_PATH) -> str:
         """
-        Resolve path relative to the parameter_core.json location.
+        Resolve path relative to the config.json location.
         If paths in JSON are like "../data/output", they are relative to the config/ folder.
         """
         if not os.path.isabs(self.data_output):
-            # Anchor relative paths to the directory containing parameter_core.json
+            # Anchor relative paths to the directory containing config.json
             config_dir = os.path.dirname(os.path.abspath(core_file_path))
             target_dir = os.path.normpath(os.path.join(config_dir, self.data_output))
         else:
@@ -80,7 +80,7 @@ def load_parameter_core(json_path: str = DEFAULT_CORE_PATH) -> ParameterCore:
     Raises KeyError if required fields are missing (Fail Fast).
     """
     if not os.path.exists(json_path):
-        raise FileNotFoundError(f"Parameter Core file not found at: {json_path}")
+        raise FileNotFoundError(f"Config file not found at: {json_path}")
         
     with open(json_path, 'r') as f:
         data = json.load(f)
@@ -137,7 +137,7 @@ def load_parameter_core(json_path: str = DEFAULT_CORE_PATH) -> ParameterCore:
         )
         
     except KeyError as e:
-        raise KeyError(f"Missing required key in Parameter Core JSON: {e}")
+        raise KeyError(f"Missing required key in Config JSON: {e}")
     except Exception as e:
         raise RuntimeError(f"Failed to parse Parameter Core: {e}")
 
