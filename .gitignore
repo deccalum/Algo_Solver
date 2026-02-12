@@ -45,3 +45,4 @@ __pycache__/
 
 ### PROJECT-SPECIFIC ###
 /data
+/.old_versions
