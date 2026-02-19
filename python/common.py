@@ -2,8 +2,98 @@ import csv
 import os
 from dataclasses import dataclass, asdict
 from enum import Enum, auto
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from glob import glob
+
+def load_config(path: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Parses a simple YAML configuration file tailored for app.yaml structure.
+    Handles nested keys, lists, and numeric types without external deps.
+    """
+    if path is None:
+        # Resolve to ../config/app.yaml relative to this file
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        path = os.path.join(base_dir, '..', 'config', 'app.yaml')
+    
+    config = {}
+    if not os.path.exists(path):
+        print(f"Warning: Config file not found at {path}")
+        return config
+
+    # Stack to track nesting: (indent_level, dict_reference)
+    stack = [(-1, config)]
+
+    with open(path, 'r') as f:
+        for line in f:
+            raw_line = line.rstrip()
+            if not raw_line or raw_line.strip().startswith('#'):
+                continue
+
+            stripped_line = raw_line.lstrip()
+            indent = len(raw_line) - len(stripped_line)
+            
+            # Find parent level
+            while stack and stack[-1][0] >= indent:
+                stack.pop()
+
+            parent = stack[-1][1]
+            
+            if ':' in stripped_line:
+                key, value_str = stripped_line.split(':', 1)
+                key = key.strip()
+                value_str = value_str.strip()
+                
+                # New section
+                if not value_str or value_str.startswith('#'):
+                    new_section = {}
+                    parent[key] = new_section
+                    stack.append((indent, new_section))
+                else:
+                    # Parse value
+                    if ' #' in value_str: value_str = value_str.split(' #')[0].strip()
+                    
+                    val = None
+                    # Lists [a, b]
+                    if value_str.startswith('[') and value_str.endswith(']'):
+                        content = value_str[1:-1]
+                        items = [x.strip() for x in content.split(',')]
+                        parsed = []
+                        for item in items:
+                            try:
+                                if '.' in item: parsed.append(float(item))
+                                else: parsed.append(int(item))
+                            except ValueError: parsed.append(item.strip('"\''))
+                        val = parsed
+                    # Primitives
+                    else:
+                        if value_str.lower() == 'true': val = True
+                        elif value_str.lower() == 'false': val = False
+                        else:
+                            try:
+                                if '.' in value_str: val = float(value_str)
+                                else: val = int(value_str)
+                            except ValueError: val = value_str.strip('"\'')
+                    
+                    parent[key] = val
+
+    return config
+
+
+@dataclass
+class SolverConfig:
+    """Default solver constraints, loaded from app.yaml if available."""
+    budget_constraint: float = 50000.0
+    space_constraint: float = 100000.0
+
+    def __post_init__(self):
+        # Wire to app.yaml
+        cfg = load_config()
+        try:
+            defaults = cfg.get('solver', {}).get('default', {})
+            if 'budget' in defaults: self.budget_constraint = float(defaults['budget'])
+            if 'space' in defaults: self.space_constraint = float(defaults['space'])
+        except Exception as e:
+            print(f"Error applying config: {e}")
 
 
 class Transits(Enum):
@@ -28,8 +118,6 @@ class Product:
     @staticmethod
     def from_row(row: Dict[str, Any], index: int) -> "Product":
         product_id = row.get("product_id", f"P{index:06d}")
-        
-        # Parse transit: handle both "PALLET" and "Transits.PALLET" formats
         transit_str = row.get("transit", "COURIER")
         if "Transits." in transit_str:
             transit_str = transit_str.replace("Transits.", "")
@@ -47,12 +135,6 @@ class Product:
             transit_size=float(row.get("transit_size", 0.0)),
             transit_cost=float(row.get("transit_cost", 0.0))
         )
-
-
-@dataclass
-class Space:
-    price_constraint: float
-    space_constraint: float
 
 
 class ProductRepository:

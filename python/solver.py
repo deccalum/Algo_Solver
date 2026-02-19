@@ -6,21 +6,14 @@ Solver: Google OR-Tools SCIP
 
 import os
 import time
-import glob
 from typing import List, Dict, Optional, Any
 from ortools.linear_solver import pywraplp
 import traceback
 
-from common import Product, Transits, dataclass, ProductRepository
+from common import Product, SolverConfig, Transits, dataclass, ProductRepository
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-@dataclass
-class SolverConfig:
-    """Configuration for the optimization constraints"""
-    budget_constraint: Optional[float] = None
-    space_constraint: Optional[float] = None
-    
 @dataclass
 class TransitCost:
     """Handles transit cost calculations based on product transit modes"""
@@ -46,11 +39,9 @@ class TransitCost:
         
         Returns: solver expression for total transit cost
         """
-        
         mode_set = set(p.transit for p in products)
         if not mode_set:
             return 0.0
-        
         modes = sorted(mode_set, key=lambda m: m.name)
         cost_terms = []
         for mode in modes:
@@ -108,11 +99,7 @@ class ProcurementOptimizer:
         self.quantity_vars = {}
         for product in products:
             max_qty = product.stock if self.config else 1
-            self.quantity_vars[product.id] = solver.IntVar(
-                0, 
-                max_qty, 
-                f"qty_{product.id}"
-            )
+            self.quantity_vars[product.id] = solver.IntVar(0, max_qty, f"qty_{product.id}")
 
     def _define_objective(self, solver: pywraplp.Solver, products: List[Product]):
         """
@@ -132,19 +119,13 @@ class ProcurementOptimizer:
         solver.Maximize(total_revenue - transit_costs)
 
     def _add_constraints(self, solver: pywraplp.Solver, products: List[Product]):
-        """
-        Add business constraints to the optimization.
-        
-        - Budget constraint: total spend <= available budget
-        - Space constraint: total size <= available space
-        """
+        """Add business constraints to the optimization."""
         if self.config.budget_constraint is not None:
             total_cost = solver.Sum([
                 p.price * self.quantity_vars[p.id] 
                 for p in products
             ])
-            solver.Add(total_cost <= self.config.budget_constraint, "budget")
-
+            solver.Add(total_cost <= self.config.budget_constraint)
         if self.config.space_constraint is not None:
             total_size = solver.Sum([
                 p.size * self.quantity_vars[p.id] 
@@ -169,9 +150,7 @@ class ProcurementOptimizer:
             pywraplp.Solver.ABNORMAL: 'ABNORMAL'
         }
         status = status_names.get(status_code, 'UNKNOWN')
-        
         result = {'status': status,'objective_value': 0.0,'product_totals': {}}
-    
         if status in ['OPTIMAL', 'FEASIBLE']:
             result['objective_value'] = solver.Objective().Value()
             for p in products:
@@ -190,9 +169,7 @@ class ProcurementOptimizer:
                         'unit_score': round(unit_score, 4),
                         'total_score': round(unit_score * quantity, 4)
                     }
-                    
         return result
-
 
 if __name__ == "__main__":
     print("Loading latest generated products...")
@@ -214,5 +191,4 @@ if __name__ == "__main__":
     script_name = os.path.splitext(os.path.basename(__file__))[0]
     timestamp = time.strftime("%H-%M_%d-%m")
     output_path = os.path.join(output_dir, f"{script_name}_{timestamp}.csv")
-    
     ProductRepository.export_results(results, output_path)

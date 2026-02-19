@@ -9,7 +9,7 @@ import time
 import numpy as np
 from typing import List, Protocol
 
-from common import Transits, Product, dataclass, ProductRepository
+from common import Transits, Product, dataclass, ProductRepository, load_config
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -81,7 +81,6 @@ class PriceModel:
         total_span = (self.max_price - self.min_price)
         prices: List[int] = []
         current = self.min_price
-
         for idx, (seg, w) in enumerate(zip(self.segments, norm_weights)):
             span = total_span * w
             start = current
@@ -92,7 +91,6 @@ class PriceModel:
                 rounded_segment = rounded_segment[1:]
             prices.extend(rounded_segment)
             current = end
-
         return prices
 
 
@@ -119,7 +117,6 @@ class SizeModel:
                 rounded_segment = rounded_segment[1:]
             sizes.extend(rounded_segment)
             current = end
-
         return sizes
 
 
@@ -266,7 +263,6 @@ class QuantityModel:
         chance_infinite *= math.exp(-price / self.infinite_decay_scale)
         chance_infinite *= math.exp(-size / (self.infinite_decay_scale * 4.0))
         chance_infinite = max(0.0, min(1.0, chance_infinite))
-
         if random.random() < chance_infinite:
             return self.infinite_stock_value
 
@@ -311,7 +307,6 @@ class ProductGenerator:
         self.transit_model = TransitModel()
         self.logistics_model = LogisticsModel()
         self.quantity_model = QuantityModel()
-        
         self.logistics_optimal = logistics_optimal
         self.logistics_base_cost = logistics_base_cost
 
@@ -366,18 +361,39 @@ class ProductGenerator:
 
 
 def generate_products() -> List[Product]:
-    """Generate products using default configuration."""
-    generator = ProductGenerator()
+    """Generate products using configuration wired to app.yaml."""
+    config = load_config()
+    
+    # Defaults
+    price_range = (1.0, 10000.0)
+    size_range = (0.1, 100000.0)
+    
+    # Extract from app.yaml structure
+    gen_config = config.get('generation', {})
+    if 'price_range' in gen_config:
+        pr = gen_config['price_range']
+        if isinstance(pr, list) and len(pr) == 2:
+            price_range = (float(pr[0]), float(pr[1]))
+            
+    if 'size_range' in gen_config:
+        sr = gen_config['size_range']
+        if isinstance(sr, list) and len(sr) == 2:
+            size_range = (float(sr[0]), float(sr[1]))
+
+    print(f"Generating products using wired config: Price={price_range}, Size={size_range}")
+    
+    generator = ProductGenerator(
+        price_range=price_range,
+        size_range=size_range
+    )
     return generator.generate()
 
 
 if __name__ == "__main__":
     products = generate_products()
-    
     out_dir = os.path.join(PROJECT_ROOT, "data", "output")
     script_name = os.path.splitext(os.path.basename(__file__))[0]
     display_timestamp = time.strftime("%H:%M_%d/%m")
     timestamp = display_timestamp.replace(":", "-").replace("/", "-")
     out_path = os.path.join(out_dir, f"{script_name}_{timestamp}.csv")
-    
     ProductRepository.export_products(products, out_path)
