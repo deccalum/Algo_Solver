@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Algo Solver Control Panel</title>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; background: #f4f4f9; color: #333; }
+        h1 { border-bottom: 2px solid #ddd; padding-bottom: 0.5rem; }
+        .controls { display: flex; gap: 1rem; margin-bottom: 1rem; }
+        button { padding: 0.75rem 1.5rem; font-size: 1rem; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 4px; transition: background 0.2s; }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        #output { background: #2d2d2d; color: #f8f8f2; padding: 1rem; border-radius: 4px; overflow-x: auto; min-height: 200px; white-space: pre-wrap; font-family: monospace; }
+        .error { color: #ff6b6b; }
+    </style>
+</head>
+<body>
+    <h1>Algo Solver Control Panel</h1>
+    
+    <div class="controls">
+        <!-- Calls Java which calls Python without args -->
+        <button id="btnGenerate" onclick="runAction('/api/optimize/generate', 'Generating Data...')">Generate Data</button>
+        <button id="btnOptimize" onclick="runAction('/api/optimize', 'Running Optimization...')">Run Optimization</button>
+    </div>
+
+    <h3>Output Log:</h3>
+    <pre id="output">Ready.</pre>
+
+    <script>
+        async function runAction(url, loadingText) {
+            const output = document.getElementById('output');
+            const btns = document.querySelectorAll('button');
+            
+            output.textContent = loadingText + "\n";
+            btns.forEach(b => b.disabled = true);
+
+            try {
+                const response = await fetch(url, { method: 'POST' });
+                const data = await response.json();
+                
+                if (response.ok) {
+                    output.textContent += "Status: " + data.status + "\n\n";
+                    output.textContent += data.output || "(No output)";
+                } else {
+                    output.innerHTML += `<span class="error">Error: ${data.status} (Exit Code: ${data.exitCode})</span>\n\n`;
+                    output.textContent += data.output || "(No error output)";
+                }
+            } catch (err) {
+                output.innerHTML += `<span class="error">Network/Client Error: ${err.message}</span>`;
+            } finally {
+                btns.forEach(b => b.disabled = false);
+            }
+        }
+    </script>
+</body>
+</html>
