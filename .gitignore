@@ -34,8 +34,6 @@ build/
 
 ### Mac OS ###
 .DS_Store
-notes.md
-revamped.md
 
 ### Python ###
 __pycache__/
@@ -45,4 +43,23 @@ __pycache__/
 
 ### PROJECT-SPECIFIC ###
 /data
-/.old_versions
+/.versions
+notes.md
+
+# Frontend build output (gets bundled into JAR)
+java/src/main/resources/static/
+!java/src/main/resources/static/.gitkeep
+
+### NODE ###
+node_modules
+dist
+dist-ssr
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+### LOGS ###
+logs
+*.log
