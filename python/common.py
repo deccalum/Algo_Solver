@@ -1,99 +1,84 @@
 import csv
 import os
-from dataclasses import dataclass, asdict
+import yaml
+from dataclasses import dataclass, asdict, field
 from enum import Enum, auto
 from typing import Dict, Any, List, Optional
 from glob import glob
 
+
+def log(component: str, message: str):
+    timestamp = __import__('time').strftime("%H:%M:%S")
+    print(f"[{component} {timestamp}] {message}")
+
+
+def format_price(value: float) -> str:
+    """Format price with dollar sign and thousands separator: $X XXX.XX"""
+    return f"${value:,.2f}".replace(',', ' ')
+
+
+def format_number(value: float) -> str:
+    """Format large numbers with thousands separator: X XXX"""
+    if value == int(value):
+        return f"{int(value):,}".replace(',', ' ')
+    return f"{value:,.2f}".replace(',', ' ')
+
+
+def format_volume(value: float) -> str:
+    """
+    Format volume with cm³/m³ units and smart conversion.
+    Uses m³ for values >= 1000000 cm³ (1 m³), otherwise cm³.
+    """
+    if value >= 1_000_000:
+        m3_value = value / 1_000_000
+        return f"{format_number(m3_value)} m³"
+    return f"{format_number(value)} cm³"
+
+
+def _require_dict(value: Any, name: str) -> Dict[str, Any]:
+    if not isinstance(value, dict):
+        raise ValueError(f"Missing or invalid config section: {name}")
+    return value
+
+
+def _require_float(section: Dict[str, Any], key: str, section_name: str) -> float:
+    value = section.get(key)
+    if value is None:
+        raise ValueError(f"Missing required config key: {section_name}.{key}")
+    try:
+        return float(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"Invalid numeric value for {section_name}.{key}: {value}") from exc
+
 def load_config(path: Optional[str] = None) -> Dict[str, Any]:
     """
-    Parses a simple YAML configuration file tailored for app.yaml structure.
-    Handles nested keys, lists, and numeric types without external deps.
+    Load YAML configuration file using standard yaml.safe_load.
+    Supports full YAML syntax including lists, maps, and nested structures.
     """
     if path is None:
-        # Resolve to ../config/app.yaml relative to this file
         base_dir = os.path.dirname(os.path.abspath(__file__))
         path = os.path.join(base_dir, '..', 'config', 'app.yaml')
     
-    config = {}
     if not os.path.exists(path):
-        print(f"Warning: Config file not found at {path}")
-        return config
-
-    # Stack to track nesting: (indent_level, dict_reference)
-    stack = [(-1, config)]
-
-    with open(path, 'r') as f:
-        for line in f:
-            raw_line = line.rstrip()
-            if not raw_line or raw_line.strip().startswith('#'):
-                continue
-
-            stripped_line = raw_line.lstrip()
-            indent = len(raw_line) - len(stripped_line)
-            
-            # Find parent level
-            while stack and stack[-1][0] >= indent:
-                stack.pop()
-
-            parent = stack[-1][1]
-            
-            if ':' in stripped_line:
-                key, value_str = stripped_line.split(':', 1)
-                key = key.strip()
-                value_str = value_str.strip()
-                
-                # New section
-                if not value_str or value_str.startswith('#'):
-                    new_section = {}
-                    parent[key] = new_section
-                    stack.append((indent, new_section))
-                else:
-                    # Parse value
-                    if ' #' in value_str: value_str = value_str.split(' #')[0].strip()
-                    
-                    val = None
-                    # Lists [a, b]
-                    if value_str.startswith('[') and value_str.endswith(']'):
-                        content = value_str[1:-1]
-                        items = [x.strip() for x in content.split(',')]
-                        parsed = []
-                        for item in items:
-                            try:
-                                if '.' in item: parsed.append(float(item))
-                                else: parsed.append(int(item))
-                            except ValueError: parsed.append(item.strip('"\''))
-                        val = parsed
-                    # Primitives
-                    else:
-                        if value_str.lower() == 'true': val = True
-                        elif value_str.lower() == 'false': val = False
-                        else:
-                            try:
-                                if '.' in value_str: val = float(value_str)
-                                else: val = int(value_str)
-                            except ValueError: val = value_str.strip('"\'')
-                    
-                    parent[key] = val
-
-    return config
+        raise FileNotFoundError(f"Config file not found at {path}")
+    
+    with open(path, 'r', encoding='utf-8') as f:
+        loaded = yaml.safe_load(f)
+    return _require_dict(loaded, 'root')
 
 
 @dataclass
 class SolverConfig:
-    """Default solver constraints, loaded from app.yaml if available."""
-    budget_constraint: float = 50000.0
-    space_constraint: float = 100000.0
+    """Default solver constraints loaded from app.yaml."""
+    budget_constraint: float = field(init=False)
+    space_constraint: float = field(init=False)
 
     def __post_init__(self):
-        # Wire to app.yaml
         cfg = load_config()
-        try:
-            defaults = cfg.get('solver', {}).get('default', {})
-            if 'budget' in defaults: self.budget_constraint = float(defaults['budget'])
-            if 'space' in defaults: self.space_constraint = float(defaults['space'])
-        except Exception as e:
-            print(f"Error applying config: {e}")
+        solver_section = _require_dict(cfg.get('solver'), 'solver')
+        defaults = _require_dict(solver_section.get('default'), 'solver.default')
+        self.budget_constraint = _require_float(defaults, 'budget', 'solver.default')
+        self.space_constraint = _require_float(defaults, 'space', 'solver.default')
 
 
 class Transits(Enum):
@@ -111,12 +96,13 @@ class Product:
     markup:     float
     logistics:  float
     transit:    Transits
-    transit_size: float = 0.0
-    transit_cost: float = 0.0
-    stock:      int = 0
+    transit_size: float 
+    transit_cost: float 
+    stock:      int 
 
     @staticmethod
     def from_row(row: Dict[str, Any], index: int) -> "Product":
+        """Factory method to create Product from CSV row."""
         product_id = row.get("product_id", f"P{index:06d}")
         transit_str = row.get("transit", "COURIER")
         if "Transits." in transit_str:
@@ -206,19 +192,19 @@ class ProductRepository:
             for p in products:
                 writer.writerow(asdict(p))
         
-        print(f"Exported {len(products)} products to {os.path.basename(filepath)}")
+        log("repo", f"Saved {len(products)} products to {os.path.basename(filepath)}")
 
 
     @staticmethod
     def export_results(results: Dict, filepath: str):
         """Export optimization results with quantities."""
         if results['status'] not in ['OPTIMAL', 'FEASIBLE']:
-            print(f"Optimization failed with status: {results['status']}")
+            log("repo", f"Skip export, optimization status is {results['status']}")
             return
 
         totals = results['product_totals']
         if not totals:
-            print("No products selected.")
+            log("repo", "Skip export, no selected products")
             return
 
         sorted_ids = sorted(totals.keys(), key=lambda x: totals[x].get('total_score', 0), reverse=True)
@@ -234,4 +220,4 @@ class ProductRepository:
                 row['product_id'] = pid
                 writer.writerow(row)
 
-        print(f"Exported optimization results ({len(totals)} items) to {os.path.basename(filepath)}")
+        log("repo", f"Saved optimization results ({len(totals)} rows) to {os.path.basename(filepath)}")

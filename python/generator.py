@@ -1,6 +1,8 @@
-# "Cartesian Product Enumeration" 
+"""
+Cartesian Product Enumeration - Generate product catalog from config-driven models.
 
-from dataclasses import field
+All configuration is loaded from variables.py. variables.py reads app.yaml.
+"""
 import itertools
 import math
 import os
@@ -9,391 +11,528 @@ import time
 import numpy as np
 from typing import List, Protocol
 
-from common import Transits, Product, dataclass, ProductRepository, load_config
+import variables
+from common import Transits, Product, dataclass, ProductRepository, log, format_price, format_number, format_volume
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 @dataclass
-class SegmentMode(Protocol):
-    def generate(self, start: float, end: float, seg: "Segment") -> List[float]:
+class ZoneMode(Protocol):
+    """Protocol for zone value generation strategies."""
+    def generate(self, start: float, end: float, zone: "Zone") -> List[float]:
         ...
 
 
 @dataclass
 class ExactMode:
-    def generate(self, start: float, end: float, seg: "Segment") -> List[float]:
-        span = max(0.0, end - start)
-        step = max(1.0, seg.step)
-        count = max(int(span / step) + 1, 1)
+    """Generate values at exact step intervals."""
+    def generate(self, start: float, end: float, zone: "Zone") -> List[float]:
+        gr = variables.guardrails
+        span = max(gr.min_span, end - start)
+        step = max(gr.min_step, zone.step)
+        count = max(int(span / step) + 1, gr.min_count)
         values = np.linspace(start, end, count)
         return [float(v) for v in values]
 
 
 @dataclass
 class PowerCurveMode:
-    def generate(self, start: float, end: float, seg: "Segment") -> List[float]:
-        points = max(2, seg.points)
-        t = np.linspace(0.0, 1.0, points)
-        shaped = t ** max(0.01, seg.shape)
+    """Generate values along a power curve (bias controls concentration)."""
+    def generate(self, start: float, end: float, zone: "Zone") -> List[float]:
+        gr = variables.guardrails
+        resolution = max(gr.min_resolution, zone.resolution)
+        t = np.linspace(0.0, 1.0, resolution)
+        shaped = t ** max(gr.min_bias, zone.bias)
         values = start + (end - start) * shaped
         return [float(v) for v in values]
 
 
 @dataclass
 class GeometricMode:
-    def generate(self, start: float, end: float, seg: "Segment") -> List[float]:
-        points = max(2, seg.points)
-        safe_start = max(1.0, start)
+    """Generate values in geometric progression."""
+    def generate(self, start: float, end: float, zone: "Zone") -> List[float]:
+        gr = variables.guardrails
+        resolution = max(gr.min_resolution, zone.resolution)
+        safe_start = max(gr.min_safe_start, start)
         safe_end = max(safe_start, end)
-        ratio = (safe_end / safe_start) ** (1.0 / (points - 1))
-        values = [safe_start * (ratio ** i) for i in range(points)]
+        ratio = (safe_end / safe_start) ** (1.0 / (resolution - 1))
+        values = [safe_start * (ratio ** i) for i in range(resolution)]
         return values
 
 
 @dataclass
 class UShapeMode:
-    def generate(self, start: float, end: float, seg: "Segment") -> List[float]:
-        points = max(2, seg.points)
-        t = np.linspace(0.0, 1.0, points)
+    """Generate values with edge density (U-shaped distribution)."""
+    def generate(self, start: float, end: float, zone: "Zone") -> List[float]:
+        gr = variables.guardrails
+        resolution = max(gr.min_resolution, zone.resolution)
+        t = np.linspace(0.0, 1.0, resolution)
         edge_dense = 0.5 - 0.5 * np.cos(np.pi * t)
         values = start + (end - start) * edge_dense
         return [float(v) for v in values]
 
 
-@dataclass
-class Segment:
-    mode: SegmentMode = field(default_factory=PowerCurveMode)
-    weight: float = 1.0
-    points: int = 10
-    shape: float = 1.0
-    step: float = 1.0
+MODE_REGISTRY = {
+    'exact': ExactMode(),
+    'power': PowerCurveMode(),
+    'geometric': GeometricMode(),
+    'u_shape': UShapeMode(),
+}
 
 
 @dataclass
-class PriceModel:
-    min_price: float
-    max_price: float
-    segments: List[Segment] = field(default_factory=lambda: [Segment()])
-
-    def generate(self) -> List[int]:
-        total_weight = sum(s.weight for s in self.segments)
-        norm_weights = [s.weight / total_weight for s in self.segments]
-        total_span = (self.max_price - self.min_price)
-        prices: List[int] = []
-        current = self.min_price
-        for idx, (seg, w) in enumerate(zip(self.segments, norm_weights)):
-            span = total_span * w
-            start = current
-            end = start + span
-            seg_prices = seg.mode.generate(start, end, seg)
-            rounded_segment = [max(1, int(round(v))) for v in seg_prices]
-            if idx > 0:
-                rounded_segment = rounded_segment[1:]
-            prices.extend(rounded_segment)
-            current = end
-        return prices
-
-
-@dataclass
-class SizeModel:
-    min_size: float
-    max_size: float
-    segments: List[Segment] = field(default_factory=lambda: [Segment()])
-    
-    def generate(self) -> List[int]:
-        total_weight = sum(s.weight for s in self.segments)
-        norm_weights = [s.weight / total_weight for s in self.segments]
-        total_span = (self.max_size - self.min_size)
-        sizes: List[int] = []
-        current = self.min_size
-
-        for idx, (seg, w) in enumerate(zip(self.segments, norm_weights)):
-            span = total_span * w
-            start = current
-            end = start + span
-            seg_sizes = seg.mode.generate(start, end, seg)
-            rounded_segment = [max(1, int(round(v))) for v in seg_sizes]
-            if idx > 0:
-                rounded_segment = rounded_segment[1:]
-            sizes.extend(rounded_segment)
-            current = end
-        return sizes
+class Zone:
+    """Zone configuration. Defines how to generate values within a price/size range."""
+    mode: ZoneMode
+    span_share: float
+    resolution: int
+    bias: float
+    step: float
 
 
 @dataclass
 class DemandModel:
-    base_demand: float = 0.9
-    price_scale: float = 10000.0
-    size_scale: float = 100000.0
-    price_sensitivity: float = 1.8
-    size_sensitivity: float = 1.2
-    noise: float = 0.08
-    min_demand: float = 0.03
+    """Demand probability model. Calculates demand based on price and size."""
+    base_demand: float
+    price_scale: float
+    size_scale: float
+    price_sensitivity: float
+    size_sensitivity: float
+    noise: float
+    min_demand: float
+    max_demand: float
     
     def evaluate(self, price: float, size: float) -> float:
+        """Calculate demand probability for given price and size."""
         price_norm = math.log10(max(1.0, price)) / math.log10(max(10.0, self.price_scale))
         size_norm = math.log10(max(1.0, size)) / math.log10(max(10.0, self.size_scale))
         demand_penalty = (self.price_sensitivity * price_norm) + (self.size_sensitivity * size_norm)
         demand = self.base_demand * math.exp(-demand_penalty)
         demand *= random.uniform(1.0 - self.noise, 1.0 + self.noise)
-        return max(self.min_demand, min(0.99, demand))
+        return max(self.min_demand, min(self.max_demand, demand))
 
 
 @dataclass
 class MarkupModel:
-    base_rate: float = 0.05
-    price_scale: float = 0.35
-    max_rate: float = 0.6
-    noise: float = 0.12
+    """Markup/margin model. Calculates markup rate based on price."""
+    base_rate: float
+    price_scale: float
+    max_rate: float
+    noise: float
+    price_divisor: float
+    min_rate: float
+    max_rate_clamp: float
     
     def evaluate(self, price: float) -> float:
-        price_factor = math.log10(max(1.0, price)) / 4.0
+        """Calculate markup rate for given price."""
+        price_factor = math.log10(max(1.0, price)) / self.price_divisor
         rate = self.base_rate + (price_factor * self.price_scale)
-        rate = min(self.max_rate, max(0.01, rate))
+        rate = min(self.max_rate, max(self.min_rate, rate))
         rate *= random.uniform(1.0 - self.noise, 1.0 + self.noise)
-        return max(0.01, min(0.99, rate))
+        return max(self.min_rate, min(self.max_rate_clamp, rate))
 
 
 @dataclass
 class TransitModel:
-    pallet_base_weight: float = 0.60
-    container_base_weight: float = 0.30
-    courier_base_weight: float = 0.10
+    """
+    Transit/shipping method assignment model. 
+    Assigns transit mode based on size, density, and configuration.
+    Uses weighted random choice to allow for variability.
+    Returns transit mode, capacity, and cost.
+    """
+    pallet_base_weight: float
+    container_base_weight: float
+    courier_base_weight: float
+    large_size_threshold: float
+    medium_size_threshold: float
+    small_size_threshold: float
+    high_density_threshold: float
+    large_container_multiplier: float
+    large_pallet_multiplier: float
+    large_courier_multiplier: float
+    medium_container_multiplier: float
+    medium_pallet_multiplier: float
+    medium_courier_multiplier: float
+    small_courier_multiplier: float
+    small_pallet_multiplier: float
+    small_container_multiplier: float
+    default_pallet_multiplier: float
+    default_container_multiplier: float
+    courier_capacity: float
+    courier_cost: float
+    pallet_capacity: float
+    pallet_cost: float
+    container_capacity: float
+    container_cost: float
+    density_epsilon: float
 
     @staticmethod
-    def _weighted_choice(weights: dict[Transits, float]) -> Transits:
-        total = sum(max(0.0, w) for w in weights.values())
+    def _weighted_choice(pallet_weight: float, container_weight: float, courier_weight: float) -> Transits:
+        """Select transit mode by weighted random choice."""
+        pallet = max(0.0, pallet_weight)
+        container = max(0.0, container_weight)
+        courier = max(0.0, courier_weight)
+        total = pallet + container + courier
         if total <= 0.0:
             return Transits.PALLET
 
         r = random.random() * total
-        acc = 0.0
-        for transit, weight in weights.items():
-            acc += max(0.0, weight)
-            if r <= acc:
-                return transit
-        return Transits.PALLET
+        if r <= pallet:
+            return Transits.PALLET
+        if r <= pallet + container:
+            return Transits.CONTAINER
+        return Transits.COURIER
+
+    def _mode_profile(self, transit: Transits) -> tuple[float, float]:
+        if transit == Transits.COURIER:
+            return self.courier_capacity, self.courier_cost
+        if transit == Transits.CONTAINER:
+            return self.container_capacity, self.container_cost
+        return self.pallet_capacity, self.pallet_cost
 
     def assign_transit(self, price: float, size: float):
-        density = price / max(0.001, size)
-        weights = {
-            Transits.PALLET: self.pallet_base_weight,
-            Transits.CONTAINER: self.container_base_weight,
-            Transits.COURIER: self.courier_base_weight,
-        }
+        """
+        Assign transit mode and return (mode, capacity, cost).
+        
+        Applies rules based on size and density:
+        - Large items favor container/pallet
+        - Medium items have balanced weights
+        - Small, high-density items favor courier"""
+        density = price / max(self.density_epsilon, size)
 
-        if size >= 60000:
-            weights[Transits.CONTAINER] *= 2.5
-            weights[Transits.PALLET] *= 0.5
-            weights[Transits.COURIER] *= 0.05
-        elif size >= 8000:
-            weights[Transits.CONTAINER] *= 1.3
-            weights[Transits.PALLET] *= 1.1
-            weights[Transits.COURIER] *= 0.2
-        elif size <= 100 and density >= 10.0:
-            weights[Transits.COURIER] *= 3.0
-            weights[Transits.PALLET] *= 0.8
-            weights[Transits.CONTAINER] *= 0.2
+        pallet_weight = self.pallet_base_weight
+        container_weight = self.container_base_weight
+        courier_weight = self.courier_base_weight
+
+        if size >= self.large_size_threshold:
+            container_weight *= self.large_container_multiplier
+            pallet_weight *= self.large_pallet_multiplier
+            courier_weight *= self.large_courier_multiplier
+        elif size >= self.medium_size_threshold:
+            container_weight *= self.medium_container_multiplier
+            pallet_weight *= self.medium_pallet_multiplier
+            courier_weight *= self.medium_courier_multiplier
+        elif size <= self.small_size_threshold and density >= self.high_density_threshold:
+            courier_weight *= self.small_courier_multiplier
+            pallet_weight *= self.small_pallet_multiplier
+            container_weight *= self.small_container_multiplier
         else:
-            weights[Transits.PALLET] *= 1.4
-            weights[Transits.CONTAINER] *= 0.8
+            pallet_weight *= self.default_pallet_multiplier
+            container_weight *= self.default_container_multiplier
 
-        transit = self._weighted_choice(weights)
+        transit = self._weighted_choice(pallet_weight, container_weight, courier_weight)
+        transit_capacity, transit_cost = self._mode_profile(transit)
+        return transit, transit_capacity, transit_cost
 
-        if transit == Transits.COURIER:
-            transit_size, transit_cost = 50.0, 20.0
-        elif transit == Transits.CONTAINER:
-            transit_size, transit_cost = 50000.0, 1500.0
-        elif transit == Transits.PALLET:
-            transit_size, transit_cost = 5000.0, 400.0
-
-        return transit, transit_size, transit_cost
-    
 
 @dataclass
 class LogisticsModel:
-    def calculate_logistics(self, size: float, optimal_mod: float, base_cost: float) -> float:
+    """Logistics difficulty model. Calculates difficulty based on size."""
+    penalty_factor: float
+    max_difficulty: float
+    min_size_log: float
+    optimal: float
+    base_cost: float
+    
+    def calculate_logistics(self, size: float) -> float:
         """
-        Logistics difficulty curve (0.0 to 1.0).
-        - Optimal modifier:     Standard (optimal_mod)
-        - Small items:          Easy to store/ship, but have higher handling.
-        - Large items:          Special equipment / expensive storage.
-        
-        Implementation:
-        - We look for a U-shaped curve.
-        - Used a quadratic penalty based on the log-distance from the optimal size.
+        Calculate logistics difficulty (0.0 to 1.0).
+        U-shaped curve: optimal at standard size, higher for very small/large.
         """
-        
-        log_size = math.log10(max(1.0, size))
-        log_opt = math.log10(optimal_mod)
+        log_size = math.log10(max(self.min_size_log, size))
+        log_opt = math.log10(self.optimal)
         diff = log_size - log_opt
-        penalty = 0.15 * (diff ** 2)
-        val = base_cost + penalty
-        return min(0.95, val)
+        penalty = self.penalty_factor * (diff ** 2)
+        val = self.base_cost + penalty
+        return min(self.max_difficulty, val)
 
 
 @dataclass
-class QuantityModel:
-    base_quantity: float = 5000.0
-    min_stock: int = 20
-    noise: float = 0.1
-    infinite_stock_value: int = 2_147_483_647
-    infinite_chance_base: float = 0.08
-    infinite_decay_scale: float = 4000.0
-    price_scale: float = 10000.0
-    size_scale: float = 100000.0
-    price_sensitivity: float = 1.0
-    size_sensitivity: float = 1.1
+class StockModel:
+    """Stock/supply model. Calculates stock limits based on price and size."""
+    base_stock: float
+    min_stock: int
+    noise: float
+    infinite_stock_value: int
+    infinite_chance_base: float
+    infinite_decay_scale: float
+    infinite_decay_size_multiplier: float
+    price_scale: float
+    size_scale: float
+    price_sensitivity: float
+    size_sensitivity: float
+    min_price_norm: float
+    min_size_norm: float
+    min_scale: float
 
     def generate_stock(self, price: float, size: float) -> int:
         """
-        Stock/Supply Limit.
+        Generate stock/supply limit.
+        Commodities (cheap/small) have high supply.
+        Luxury/bulky items have limited supply.
+        Small chance of effectively infinite stock.
         
-        - Commodities (cheap, small):    High supply
-        - Luxury items (expensive):      Scarce supply
-        - Bulky items (large):           Limited by space
+        Assigns no stock limit to a percentage of items based on price and size, simulating commodities.
         
-        Implementation:
-        - Supply decays exponentially with price and size
-        - Higher prices and larger items have lower stock
-        - Optional chance of effectively infinite stock (encoded as large int)
-        - Random noise for variance
+        Smooths stock limits with exponential decay based on price and size, with added noise for variability.
         """
         chance_infinite = self.infinite_chance_base
         chance_infinite *= math.exp(-price / self.infinite_decay_scale)
-        chance_infinite *= math.exp(-size / (self.infinite_decay_scale * 4.0))
+        chance_infinite *= math.exp(-size / (self.infinite_decay_scale * self.infinite_decay_size_multiplier))
         chance_infinite = max(0.0, min(1.0, chance_infinite))
+        
         if random.random() < chance_infinite:
             return self.infinite_stock_value
 
-        price_norm = math.log10(max(1.0, price)) / math.log10(max(10.0, self.price_scale))
-        size_norm = math.log10(max(1.0, size)) / math.log10(max(10.0, self.size_scale))
+        price_norm = (math.log10(max(self.min_price_norm, price)) / math.log10(max(self.min_scale, self.price_scale)))
+        size_norm = (math.log10(max(self.min_size_norm, size)) / math.log10(max(self.min_scale, self.size_scale)))
         stock_penalty = (self.price_sensitivity * price_norm) + (self.size_sensitivity * size_norm)
-        stock = self.base_quantity * math.exp(-stock_penalty)
+        stock = self.base_stock * math.exp(-stock_penalty)
         stock *= random.uniform(1.0 - self.noise, 1.0 + self.noise)
         return max(self.min_stock, int(stock))
 
 
-class ProductGenerator:
-    """Encapsulates product generation with configurable models."""
+def generate_zone_values(min_val: float, max_val: float, zones: List[Zone]) -> List[int]:
+    """
+    Generate discretized values across multiple zones.
     
-    def __init__(
-        self,
-        price_range: tuple[float, float] = (1.0, 10000.0),
-        size_range: tuple[float, float] = (0.1, 100000.0),
-        logistics_optimal: float = 2000.0,
-        logistics_base_cost: float = 0.5,
-        price_segments: List[Segment] | None = None,
-        size_segments: List[Segment] | None = None,
-    ):
-        """Initialize generator with model configurations."""
-        configured_price_segments = (price_segments if price_segments is not None else self._default_price_segments(price_range))
-        configured_size_segments = (
-            size_segments if size_segments is not None else self._default_size_segments()
-        )
+    Returns list of integers representing price or size buckets.
+    Handles span distribution, overlap prevention, and rounding.
+    
+    Each zone generates values in its assigned span, with density controlled by mode and bias.
+    """
+    gr = variables.guardrails
+    total_span = max_val - min_val
+    total_share = sum(z.span_share for z in zones)
+    norm_shares = [z.span_share / total_share for z in zones]
+    
+    values = []
+    boundary = min_val
+    
+    for idx, (zone, share) in enumerate(zip(zones, norm_shares)):
+        zone_span = total_span * share
+        zone_start = boundary
+        zone_end = zone_start + zone_span
         
-        self.price_model = PriceModel(
-            min_price=price_range[0],
-            max_price=price_range[1],
-            segments=configured_price_segments,
-        )
-        self.size_model = SizeModel(
-            min_size=size_range[0],
-            max_size=size_range[1],
-            segments=configured_size_segments,
-        )
-        self.demand_model = DemandModel()
-        self.markup_model = MarkupModel()
-        self.transit_model = TransitModel()
-        self.logistics_model = LogisticsModel()
-        self.quantity_model = QuantityModel()
-        self.logistics_optimal = logistics_optimal
-        self.logistics_base_cost = logistics_base_cost
+        zone_vals = zone.mode.generate(zone_start, zone_end, zone)
+        
+        rounded = [max(gr.round_min, int(round(v))) for v in zone_vals]
+        
+        if idx > 0:
+            rounded = rounded[1:]
+        
+        values.extend(rounded)
+        boundary = zone_end
+    
+    return values
+
+
+class ProductGenerator:
+    """
+    Product catalog generator 
+    
+    Generates Cartesian product of price-size combinations with attributes calculated by models.
+    
+    Builds zones/models via cfg.
+    """
+    
+    def __init__(self):
+        """Initialize generator."""
+        self.gen_cfg = variables.generation
+        
+        self.price_zones = self._build_zones(self.gen_cfg.price_zones)
+        self.size_zones = self._build_zones(self.gen_cfg.size_zones)
+        
+        self.demand_model = self._build_demand_model()
+        self.markup_model = self._build_markup_model()
+        self.transit_model = self._build_transit_model()
+        self.logistics_model = self._build_logistics_model()
+        self.stock_model = self._build_stock_model()
 
     @staticmethod
-    def _default_price_segments(price_range: tuple[float, float]) -> List[Segment]:
-        min_price, max_price = price_range
-        breakpoint_price = 20.0
-        total_span = max(1.0, max_price - min_price)
-        first_span = max(0.0, min(breakpoint_price, max_price) - min_price)
-        first_weight = max(0.0001, first_span / total_span)
-        second_weight = max(0.0001, 1.0 - first_weight)
-
-        return [
-            Segment(weight=first_weight, mode=ExactMode(), step=1.0),
-            Segment(weight=second_weight, points=81, mode=GeometricMode()),
-        ]
-
-    @staticmethod
-    def _default_size_segments() -> List[Segment]:
-        return [
-            Segment(weight=0.30, points=41, mode=UShapeMode()),
-            Segment(weight=0.40, points=20, mode=PowerCurveMode(), shape=1.0),
-            Segment(weight=0.30, points=41, mode=UShapeMode()),
-        ]
+    def _log(message: str):
+        log("generator", message)
+    
+    def _build_zones(self, zone_configs: List) -> List[Zone]:
+        """Convert zone configs to Zone objects with mode instances."""
+        zones = []
+        for zc in zone_configs:
+            mode_name = zc.mode if hasattr(zc, 'mode') else 'power'
+            mode_obj = MODE_REGISTRY.get(mode_name, PowerCurveMode())
+            
+            zones.append(Zone(
+                mode=mode_obj,
+                span_share=float(zc.span_share),
+                resolution=zc.resolution,
+                bias=zc.bias,
+                step=zc.step
+            ))
+        return zones
+    
+    def _build_demand_model(self) -> DemandModel:
+        """Build demand model from config."""
+        cfg = variables.demand
+        return DemandModel(
+            base_demand=cfg.base_demand,
+            price_scale=cfg.price_scale,
+            size_scale=cfg.size_scale,
+            price_sensitivity=cfg.price_sensitivity,
+            size_sensitivity=cfg.size_sensitivity,
+            noise=cfg.noise,
+            min_demand=cfg.min_demand,
+            max_demand=cfg.max_demand
+        )
+    
+    def _build_markup_model(self) -> MarkupModel:
+        """Build markup model from config."""
+        cfg = variables.markup
+        return MarkupModel(
+            base_rate=cfg.base_rate,
+            price_scale=cfg.price_scale,
+            max_rate=cfg.max_rate,
+            noise=cfg.noise,
+            price_divisor=cfg.price_divisor,
+            min_rate=cfg.min_rate,
+            max_rate_clamp=cfg.max_rate_clamp
+        )
+    
+    def _build_transit_model(self) -> TransitModel:
+        """Build transit model from config."""
+        cfg = variables.transit
+        return TransitModel(
+            pallet_base_weight=cfg.pallet_base_weight,
+            container_base_weight=cfg.container_base_weight,
+            courier_base_weight=cfg.courier_base_weight,
+            large_size_threshold=cfg.large_size_threshold,
+            medium_size_threshold=cfg.medium_size_threshold,
+            small_size_threshold=cfg.small_size_threshold,
+            high_density_threshold=cfg.high_density_threshold,
+            large_container_multiplier=cfg.large_container_multiplier,
+            large_pallet_multiplier=cfg.large_pallet_multiplier,
+            large_courier_multiplier=cfg.large_courier_multiplier,
+            medium_container_multiplier=cfg.medium_container_multiplier,
+            medium_pallet_multiplier=cfg.medium_pallet_multiplier,
+            medium_courier_multiplier=cfg.medium_courier_multiplier,
+            small_courier_multiplier=cfg.small_courier_multiplier,
+            small_pallet_multiplier=cfg.small_pallet_multiplier,
+            small_container_multiplier=cfg.small_container_multiplier,
+            default_pallet_multiplier=cfg.default_pallet_multiplier,
+            default_container_multiplier=cfg.default_container_multiplier,
+            courier_capacity=cfg.courier_capacity,
+            courier_cost=cfg.courier_cost,
+            pallet_capacity=cfg.pallet_capacity,
+            pallet_cost=cfg.pallet_cost,
+            container_capacity=cfg.container_capacity,
+            container_cost=cfg.container_cost,
+            density_epsilon=cfg.density_epsilon
+        )
+    
+    def _build_logistics_model(self) -> LogisticsModel:
+        """Build logistics model from config."""
+        cfg = variables.logistics
+        return LogisticsModel(
+            penalty_factor=cfg.penalty_factor,
+            max_difficulty=cfg.max_difficulty,
+            min_size_log=cfg.min_size_log,
+            optimal=self.gen_cfg.logistics_optimal,
+            base_cost=self.gen_cfg.logistics_base_cost
+        )
+    
+    def _build_stock_model(self) -> StockModel:
+        """Build stock model from config."""
+        cfg = variables.stock
+        return StockModel(
+            base_stock=cfg.base_stock,
+            min_stock=cfg.min_stock,
+            noise=cfg.noise,
+            infinite_stock_value=cfg.infinite_stock_value,
+            infinite_chance_base=cfg.infinite_chance_base,
+            infinite_decay_scale=cfg.infinite_decay_scale,
+            infinite_decay_size_multiplier=cfg.infinite_decay_size_multiplier,
+            price_scale=cfg.price_scale,
+            size_scale=cfg.size_scale,
+            price_sensitivity=cfg.price_sensitivity,
+            size_sensitivity=cfg.size_sensitivity,
+            min_price_norm=cfg.min_price_norm,
+            min_size_norm=cfg.min_size_norm,
+            min_scale=cfg.min_scale
+        )
     
     def generate(self) -> List[Product]:
-        """Generate full Cartesian product enumeration of all price-size bucket combinations."""
-        prices = self.price_model.generate()
-        sizes = self.size_model.generate()
+        """
+        Generate full Cartesian product of price-size combinations.
         
+        Returns list of Product objects with all attributes calculated.
+        
+        Calculates attributes for each price-size combination using the respective models.
+        """
+        self._log("Starting product generation")
+        prices = generate_zone_values(self.gen_cfg.min_price,self.gen_cfg.max_price,self.price_zones)
+        sizes = generate_zone_values(self.gen_cfg.min_size,self.gen_cfg.max_size,self.size_zones)
+        self._log(
+            f"Built price buckets: total={format_number(len(prices))}, unique={format_number(len(set(prices)))}, "
+            f"min={format_price(min(prices))}, max={format_price(max(prices))}"
+        )
+        self._log(
+            f"Built size buckets: total={format_number(len(sizes))}, unique={format_number(len(set(sizes)))}, "
+            f"min={format_volume(min(sizes))}, max={format_volume(max(sizes))}"
+        )
+
+        total_combinations = len(prices) * len(sizes)
+        self._log(f"Cartesian combinations to evaluate: {format_number(total_combinations)}")
+
         products = []
-        
-        for idx, (p, s) in enumerate(itertools.product(prices, sizes), start=1):
-            transit, _, _ = self.transit_model.assign_transit(p, s)
-            demand = self.demand_model.evaluate(p, s)
-            logistics = self.logistics_model.calculate_logistics(s, self.logistics_optimal, self.logistics_base_cost)
-            markup = self.markup_model.evaluate(p)
-            stock = self.quantity_model.generate_stock(p, s)
+        transit_counts = {Transits.COURIER: 0, Transits.PALLET: 0, Transits.CONTAINER: 0}
+        infinite_stock_count = 0
+        progress_step = max(1, total_combinations // 10)
+
+        for idx, (price, size) in enumerate(itertools.product(prices, sizes), start=1):
+            transit, transit_capacity, transit_cost = self.transit_model.assign_transit(price, size)
+            demand = self.demand_model.evaluate(price, size)
+            logistics = self.logistics_model.calculate_logistics(size)
+            markup = self.markup_model.evaluate(price)
+            stock = self.stock_model.generate_stock(price, size)
+
+            transit_counts[transit] += 1
+            if stock == self.stock_model.infinite_stock_value:
+                infinite_stock_count += 1
             
             products.append(Product(
                 id=f"P{idx:06d}",
-                price=p,
-                size=s,
+                price=price,
+                size=size,
                 logistics=round(logistics, 3),
                 transit=transit,
+                transit_size=transit_capacity,
+                transit_cost=transit_cost,
                 demand=round(demand, 3),
                 markup=round(markup, 3),
                 stock=stock,
             ))
+
+            if idx % progress_step == 0 or idx == total_combinations:
+                pct = (idx / total_combinations) * 100.0
+                self._log(f"Working through combinations: {format_number(idx)}/{format_number(total_combinations)} ({pct:.1f}%)")
+
+        self._log(
+            "Transit mix: "
+            f"courier={format_number(transit_counts[Transits.COURIER])}, "
+            f"pallet={format_number(transit_counts[Transits.PALLET])}, "
+            f"container={format_number(transit_counts[Transits.CONTAINER])}"
+        )
+        self._log(f"Infinite-stock products: {format_number(infinite_stock_count)}")
+        self._log(f"Generation complete. Total products: {format_number(len(products))}")
         
         return products
 
 
-def generate_products() -> List[Product]:
-    """Generate products using configuration wired to app.yaml."""
-    config = load_config()
-    
-    # Defaults
-    price_range = (1.0, 10000.0)
-    size_range = (0.1, 100000.0)
-    
-    # Extract from app.yaml structure
-    gen_config = config.get('generation', {})
-    if 'price_range' in gen_config:
-        pr = gen_config['price_range']
-        if isinstance(pr, list) and len(pr) == 2:
-            price_range = (float(pr[0]), float(pr[1]))
-            
-    if 'size_range' in gen_config:
-        sr = gen_config['size_range']
-        if isinstance(sr, list) and len(sr) == 2:
-            size_range = (float(sr[0]), float(sr[1]))
-
-    print(f"Generating products using wired config: Price={price_range}, Size={size_range}")
-    
-    generator = ProductGenerator(
-        price_range=price_range,
-        size_range=size_range
-    )
-    return generator.generate()
-
-
 if __name__ == "__main__":
-    products = generate_products()
+    generator = ProductGenerator()
+    products = generator.generate()
     out_dir = os.path.join(PROJECT_ROOT, "data", "output")
     script_name = os.path.splitext(os.path.basename(__file__))[0]
     display_timestamp = time.strftime("%H:%M_%d/%m")
     timestamp = display_timestamp.replace(":", "-").replace("/", "-")
     out_path = os.path.join(out_dir, f"{script_name}_{timestamp}.csv")
     ProductRepository.export_products(products, out_path)
+    log("generator", f"Done. Generated {len(products)} products -> {out_path}")
