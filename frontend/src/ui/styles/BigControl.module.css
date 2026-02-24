@@ -1,0 +1,113 @@
+.bigPanel {
+  flex: 1;
+  padding: 30px;
+  border-radius: 14px;
+  transition:
+    transform 0.08s ease,
+    filter 0.12s ease,
+    box-shadow 0.12s ease;
+  cursor: default;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  user-select: none;
+}
+
+.bigPanel:hover {
+  filter: brightness(1.04);
+}
+
+.activePanel {
+  filter: brightness(1.15);
+}
+
+.panelHeader {
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 15px;
+  opacity: 0.9;
+}
+
+.panelValue {
+  font-size: 32px;
+  font-weight: 400;
+  margin-bottom: 20px;
+  letter-spacing: 4px;
+}
+
+.panelValue input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  font-size: 42px;
+  font-weight: 600;
+  color: white;
+  outline: none;
+  text-align: left;
+}
+
+.bigPanel input {
+  cursor: text;
+}
+
+.gauge {
+  height: 3px;
+  border-radius: 5px;
+  margin-bottom: 20px;
+  opacity: 0.7;
+}
+
+.activeGauge {
+  transition:
+    opacity 3s ease,
+    height 0.08s ease;
+  opacity: 1;
+}
+
+.panelDivider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.2);
+  margin-bottom: 20px;
+}
+
+.multiplierRow {
+  display: flex;
+  gap: 2px;
+}
+
+.multiplierRow button {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.2);
+  color: white;
+  border: none;
+  padding: 8px;
+  border-radius: 1px;
+  cursor: pointer;
+  transition:
+    transform 0.1s ease,
+    background 0.15s ease;
+}
+
+.multiplierRow button:hover {
+  background: rgba(0, 0, 0, 0.35);
+  transition:
+    opacity 3s ease,
+    background 0.5s ease;
+}
+
+.bigControl {
+  flex: 1;
+  background: #f9fafb;
+  padding: 30px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.bigLabel {
+  font-size: 14px;
+  color: #555;
+  margin-bottom: 15px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}

@@ -1,0 +1,77 @@
+.container {
+  min-height: 80vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #f3f5f7;
+}
+
+.card {
+  width: 900px;
+  background: white;
+  padding: 50px;
+  border-radius: 10px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.08);
+  color: #111827;
+}
+
+.title {
+  margin-bottom: 40px;
+  font-weight: 600;
+}
+
+.primaryRow {
+  display: flex;
+  gap: 40px;
+}
+
+.secondaryRow {
+  display: flex;
+  gap: 40px;
+  margin-top: 40px;
+}
+
+.bigControl {
+  flex: 1;
+  background: #f9fafb;
+  padding: 30px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.bigLabel {
+  font-size: 14px;
+  color: #555;
+  margin-bottom: 15px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.placeholderBox {
+  height: 120px;
+  background: #f3f4f6;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+.footer {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 30px;
+}
+
+.backButton {
+  padding: 12px 40px;
+  border-radius: 14px;
+  border: 1px solid #ccc;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.confirmButton {
+  padding: 12px 40px;
+  border-radius: 14px;
+  border: 1px solid #ccc;
+  background: #ffffff;
+  cursor: pointer;
+}
