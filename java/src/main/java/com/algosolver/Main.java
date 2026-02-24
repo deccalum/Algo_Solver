@@ -8,9 +8,6 @@ import org.springframework.context.event.EventListener;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
-import java.awt.Desktop;
-import java.net.URI;
-
 @SpringBootApplication
 @ConfigurationPropertiesScan(basePackages = "com.algosolver.config")
 public class Main {
@@ -35,21 +32,40 @@ class BrowserLauncher {
             return;
         }
 
-        String port = env.getProperty("server.port", "8080");
-        String url = "http://localhost:" + port;
+        // New: allow opening frontend dev server if specified
+        String openFrontendDev = env.getProperty("app.open-frontend-dev", "false");
+        String url;
+        if (Boolean.parseBoolean(openFrontendDev)) {
+            url = "http://localhost:3000";
+        } else {
+            String port = env.getProperty("server.port", "8080");
+            url = "http://localhost:" + port;
+        }
 
         System.out.println("\n" + "=".repeat(60));
-        System.out.println("AlgoSolver is running");
+        System.out.println("AlgoSolver running");
         System.out.println("URL: " + url);
         System.out.println("=".repeat(60) + "\n");
 
-        if (Desktop.isDesktopSupported()) {
-            try {
-                Desktop.getDesktop().browse(new URI(url));
-            } catch (Exception e) {
-                System.err.println("Could not open browser automatically: " + e.getMessage());
-                System.out.println("Please open " + url + " manually");
+        try {
+            String os = System.getProperty("os.name").toLowerCase();
+            ProcessBuilder pb;
+
+            if (os.contains("win")) {
+                // Windows: use cmd /c start
+                pb = new ProcessBuilder("cmd", "/c", "start", url);
+            } else if (os.contains("mac")) {
+                // macOS: use open
+                pb = new ProcessBuilder("open", url);
+            } else {
+                // Linux/Unix: use xdg-open
+                pb = new ProcessBuilder("xdg-open", url);
             }
+
+            pb.start();
+        } catch (Exception e) {
+            System.err.println("Could not open browser: " + e.getMessage());
+            System.out.println("Please open " + url + " manually");
         }
     }
 }

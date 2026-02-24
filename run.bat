@@ -48,15 +48,20 @@ echo This will start:
 echo   • Frontend dev server: http://localhost:3000
 echo   • Backend API server:  http://localhost:8080
 echo.
-echo Starting backend first...
+where mvn >nul 2>&1
+if errorlevel 1 (
+    echo [!] Maven not found in PATH. Backend cannot start.
+    echo [!] Open a terminal where Maven works, or run run.bat install to verify tools.
+    goto :eof
+)
+
+echo Starting backend in current terminal...
 cd /d "%JAVA_DIR%"
-start "AlgoSolver Backend" cmd /c "mvn spring-boot:run"
-timeout /t 5 /nobreak > nul
-echo [✓] Backend running
-echo.
-echo Starting frontend...
+call mvn spring-boot:run
+
+REM After backend exits, start frontend in a new terminal
 cd /d "%FRONTEND_DIR%"
-call npm run dev
+start "AlgoSolver Frontend" cmd /k "npm run dev"
 goto :eof
 
 :frontend
