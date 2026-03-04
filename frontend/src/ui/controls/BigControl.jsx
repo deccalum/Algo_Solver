@@ -2,148 +2,151 @@ import { useRef, useState, useEffect } from "react";
 import styles from "../styles/BigControl.module.css";
 
 function formatNumber(value) {
-    return Number(value ?? 0).toLocaleString("en-US");
+  return Number(value ?? 0).toLocaleString("en-US");
 }
 
 export function BigControl({
-    label,
-    value,
-    setValue,
-    max = 1000000,
-    accent = "#1e293b",
+  label,
+  value,
+  setValue,
+  max = 1000000,
+  accent = "#1e293b",
+  showGauge = true,
+  showModes = true,
 }) {
-    const panelRef = useRef(null);
-    const inputRef = useRef(null);
+  const panelRef = useRef(null);
+  const inputRef = useRef(null);
 
-    const [active, setActive] = useState(false);
-    const [editing, setEditing] = useState(false);
-    const [tempValue, setTempValue] = useState(value);
+  const [active, setActive] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [tempValue, setTempValue] = useState(value);
 
-    const dragState = useRef({
-        dragging: false,
-    });
+  const dragState = useRef({
+    dragging: false,
+  });
 
-    const startDrag = (e) => {
-        if (editing) return;
-        if (e.target.closest("button")) return;
+  const startDrag = (e) => {
+    if (editing) return;
+    if (e.target.closest("button")) return;
 
-        panelRef.current.requestPointerLock();
-        dragState.current.dragging = true;
-        setActive(true);
+    panelRef.current.requestPointerLock();
+    dragState.current.dragging = true;
+    setActive(true);
+  };
+
+  const handleMove = (e) => {
+    if (!dragState.current.dragging) return;
+
+    let sensitivity = max / 5000;
+
+    if (e.shiftKey) sensitivity *= 0.25;
+
+    let delta = e.movementX * sensitivity;
+
+    let next = value + delta;
+
+    if (e.ctrlKey) {
+      const snapSize = max / 100;
+      next = Math.round(next / snapSize) * snapSize;
+    }
+
+    setValue(Math.min(max, Math.max(0, Math.round(next))));
+  };
+
+  const stopDrag = () => {
+    if (!dragState.current.dragging) return;
+
+    dragState.current.dragging = false;
+    setActive(false);
+    document.exitPointerLock();
+  };
+
+  useEffect(() => {
+    document.addEventListener("mousemove", handleMove);
+    document.addEventListener("mouseup", stopDrag);
+
+    return () => {
+      document.removeEventListener("mousemove", handleMove);
+      document.removeEventListener("mouseup", stopDrag);
     };
+  });
 
-    const handleMove = (e) => {
-        if (!dragState.current.dragging) return;
+  const enterEditMode = () => {
+    setEditing(true);
+    setTempValue(value);
 
-        let sensitivity = max / 5000;
+    setTimeout(() => {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }, 0);
+  };
 
-        if (e.shiftKey) sensitivity *= 0.25;
+  const confirmEdit = () => {
+    const parsed = Number(String(tempValue).replace(/,/g, ""));
 
-        let delta = e.movementX * sensitivity;
+    if (!isNaN(parsed)) {
+      setValue(Math.min(max, Math.max(0, parsed)));
+    }
 
-        let next = value + delta;
+    setEditing(false);
+  };
 
-        if (e.ctrlKey) {
-            const snapSize = max / 100;
-            next = Math.round(next / snapSize) * snapSize;
-        }
+  const cancelEdit = () => {
+    setEditing(false);
+  };
 
-        setValue(
-            Math.min(max, Math.max(0, Math.round(next)))
-        );
-    };
+  const percent = Math.min((value / max) * 100, 100);
 
-    const stopDrag = () => {
-        if (!dragState.current.dragging) return;
+  return (
+    <div
+      ref={panelRef}
+      className={`${styles.bigPanel} ${active ? styles.activePanel : ""}`}
+      style={{ backgroundColor: accent }}
+      onMouseDown={startDrag}
+      onDoubleClick={enterEditMode}
+    >
+      <div className={styles.panelMainRow}>
+        <div className={styles.panelHeader}>{label}:</div>
 
-        dragState.current.dragging = false;
-        setActive(false);
-        document.exitPointerLock();
-    };
-
-    useEffect(() => {
-        document.addEventListener("mousemove", handleMove);
-        document.addEventListener("mouseup", stopDrag);
-
-        return () => {
-            document.removeEventListener("mousemove", handleMove);
-            document.removeEventListener("mouseup", stopDrag);
-        };
-    });
-
-    const enterEditMode = () => {
-        setEditing(true);
-        setTempValue(value);
-
-        setTimeout(() => {
-            inputRef.current?.focus();
-            inputRef.current?.select();
-        }, 0);
-    };
-
-    const confirmEdit = () => {
-        const parsed = Number(
-            String(tempValue).replace(/,/g, "")
-        );
-
-        if (!isNaN(parsed)) {
-            setValue(Math.min(max, Math.max(0, parsed)));
-        }
-
-        setEditing(false);
-    };
-
-    const cancelEdit = () => {
-        setEditing(false);
-    };
-
-    const percent = Math.min((value / max) * 100, 100);
-
-    return (
-        <div
-            ref={panelRef}
-            className={`${styles.bigPanel} ${active ? styles.activePanel : ""
-                }`}
-            style={{ backgroundColor: accent }}
-            onMouseDown={startDrag}
-            onDoubleClick={enterEditMode}
-        >
-            <div className={styles.panelHeader}>{label}</div>
-
-            <div className={styles.panelValue}>
-                {editing ? (
-                    <input
-                        ref={inputRef}
-                        value={tempValue}
-                        onChange={(e) => setTempValue(e.target.value)}
-                        onBlur={confirmEdit}
-                        onKeyDown={(e) => {
-                            if (e.key === "Enter") confirmEdit();
-                            if (e.key === "Escape") cancelEdit();
-                        }}
-                    />
-                ) : (
-                    formatNumber(value)
-                )}
-            </div>
-
+        {showGauge && (
+          <div className={styles.inlineGaugeTrack}>
             <div
-                className={`${styles.gauge} ${active ? styles.activeGauge : ""
-                    }`}
-                style={{
-                    width: `${percent}%`,
-                    backgroundColor: "rgba(255,255,255,0.5)",
-                }}
+              className={`${styles.inlineGaugeFill} ${active ? styles.activeGauge : ""}`}
+              style={{ width: `${percent}%` }}
             />
+          </div>
+        )}
 
-            <div className={styles.panelDivider} />
-
-            <div className={styles.multiplierRow}>
-                <button>Mode A</button>
-                <button>Mode B</button>
-                <button>Mode C</button>
-                <button>Mode D</button>
-            </div>
+        <div className={styles.panelValue}>
+          {editing ? (
+            <input
+              ref={inputRef}
+              value={tempValue}
+              onChange={(e) => setTempValue(e.target.value)}
+              onBlur={confirmEdit}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") confirmEdit();
+                if (e.key === "Escape") cancelEdit();
+              }}
+            />
+          ) : (
+            formatNumber(value)
+          )}
         </div>
-    );
+      </div>
+
+      {showModes && (
+        <>
+          <div className={styles.panelDivider} />
+
+          <div className={styles.multiplierRow}>
+            <button>Mode A</button>
+            <button>Mode B</button>
+            <button>Mode C</button>
+            <button>Mode D</button>
+          </div>
+        </>
+      )}
+    </div>
+  );
 }

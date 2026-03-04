@@ -1,0 +1,22 @@
+.graphActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.actionButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: #1f2234;
+  color: #e5e7eb;
+  cursor: pointer;
+}
+
+.actionButton:hover {
+  background: #2c2f4a;
+}

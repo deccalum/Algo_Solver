@@ -1,16 +1,18 @@
 .bigPanel {
   flex: 1;
-  padding: 30px;
-  border-radius: 14px;
+  padding: 20px;
+  border-radius: 8px;
   transition:
     transform 0.08s ease,
     filter 0.12s ease,
     box-shadow 0.12s ease;
-  cursor: default;
+  cursor: grab;
   color: white;
   display: flex;
   flex-direction: column;
   user-select: none;
+  font-weight: 100;
+  line-height: 2.0;
 }
 
 .bigPanel:hover {
@@ -21,30 +23,53 @@
   filter: brightness(1.15);
 }
 
+.panelMainRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
 .panelHeader {
   font-size: 14px;
   text-transform: uppercase;
   letter-spacing: 1px;
-  margin-bottom: 15px;
+  margin-bottom: 0;
   opacity: 0.9;
 }
 
 .panelValue {
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 400;
-  margin-bottom: 20px;
-  letter-spacing: 4px;
+  margin-bottom: 0;
+  letter-spacing: 2px;
+  text-align: right;
 }
 
 .panelValue input {
-  width: 100%;
+  width: 180px;
   background: transparent;
   border: none;
-  font-size: 42px;
+  font-size: 28px;
   font-weight: 600;
   color: white;
   outline: none;
-  text-align: left;
+  text-align: right;
+}
+
+.inlineGaugeTrack {
+  flex: 1;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+  overflow: hidden;
+}
+
+.inlineGaugeFill {
+  height: 100%;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.7);
 }
 
 .bigPanel input {
@@ -54,7 +79,7 @@
 .gauge {
   height: 3px;
   border-radius: 5px;
-  margin-bottom: 20px;
+  margin-bottom: 0;
   opacity: 0.7;
 }
 
@@ -99,9 +124,8 @@
 .bigControl {
   flex: 1;
   background: #f9fafb;
-  padding: 30px;
   border-radius: 8px;
-  border: 1px solid #e5e7eb;
+	font-weight: 500;
 }
 
 .bigLabel {

@@ -1,0 +1,35 @@
+.leftCluster,
+.rightCluster {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+
+.statusItem,
+.metaItem {
+  font-size: 10px;
+  opacity: 0.95;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.statusDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.running {
+  background: #22c55e;
+}
+
+.down {
+  background: #ef4444;
+}
+
+.idle {
+  background: #f59e0b;
+}
