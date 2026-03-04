@@ -1,0 +1,4 @@
+ortools>=9.5.2237
+grpcio>=1.76.0
+grpcio-tools>=1.76.0
+protobuf>=4.33.1
