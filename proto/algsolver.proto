@@ -1,0 +1,214 @@
+syntax = "proto3";
+
+package algosolver.bridge.v1;
+
+option java_package = "com.algosolver.grpc";
+option java_multiple_files = true;
+option java_outer_classname = "AlgSolverProto";
+
+// -----------------------------------------------------------------------------
+// SECTION 1: ALGORITHM INPUT CONFIGURATION
+// -----------------------------------------------------------------------------
+
+message GenerationConfig {
+    double budget = 1;
+    double space = 2;
+	double min_price = 3;
+	double max_price = 4;
+	double min_size = 5;
+	double max_size = 6;
+	double logistics_optimal = 7;
+	double logistics_base_cost = 8;
+	repeated ZoneConfig price_zones = 9;
+	repeated ZoneConfig size_zones = 10;
+	ZoneDefaults zone_defaults = 11;
+}
+
+message ZoneDefaults {
+	string mode = 1;
+	double span_share = 2;
+	int32 resolution = 3;
+	double bias = 4;
+	double step = 5;
+}
+
+message ZoneConfig {
+	string mode = 1;
+	double span_share = 2;
+	int32 resolution = 3;
+	double bias = 4;
+	double step = 5;
+}
+
+message DemandConfig {
+	double base_demand = 1;
+	double price_scale = 2;
+	double size_scale = 3;
+	double price_sensitivity = 4;
+	double size_sensitivity = 5;
+	double noise = 6;
+	double min_demand = 7;
+	double max_demand = 8;
+}
+
+message MarkupConfig {
+	double base_rate = 1;
+	double price_scale = 2;
+	double max_rate = 3;
+	double noise = 4;
+	double price_divisor = 5;
+	double min_rate = 6;
+	double max_rate_clamp = 7;
+}
+
+message TransitConfig {
+	double pallet_base_weight = 1;
+	double container_base_weight = 2;
+	double courier_base_weight = 3;
+	double large_size_threshold = 4;
+	double medium_size_threshold = 5;
+	double small_size_threshold = 6;
+	double high_density_threshold = 7;
+	double large_container_multiplier = 8;
+	double large_pallet_multiplier = 9;
+	double large_courier_multiplier = 10;
+	double medium_container_multiplier = 11;
+	double medium_pallet_multiplier = 12;
+	double medium_courier_multiplier = 13;
+	double small_courier_multiplier = 14;
+	double small_pallet_multiplier = 15;
+	double small_container_multiplier = 16;
+	double default_pallet_multiplier = 17;
+	double default_container_multiplier = 18;
+	double courier_capacity = 19;
+	double courier_cost = 20;
+	double pallet_capacity = 21;
+	double pallet_cost = 22;
+	double container_capacity = 23;
+	double container_cost = 24;
+	double density_epsilon = 25;
+}
+
+message LogisticsConfig {
+	double penalty_factor = 1;
+	double max_difficulty = 2;
+	double min_size_log = 3;
+}
+
+message StockConfig {
+	double base_stock = 1;
+	int32 min_stock = 2;
+	double noise = 3;
+	int32 infinite_stock_value = 4;
+	double infinite_chance_base = 5;
+	double infinite_decay_scale = 6;
+	double infinite_decay_size_multiplier = 7;
+	double price_scale = 8;
+	double size_scale = 9;
+	double price_sensitivity = 10;
+	double size_sensitivity = 11;
+	double min_price_norm = 12;
+	double min_size_norm = 13;
+	double min_scale = 14;
+}
+
+message GuardrailsConfig {
+	double min_span = 1;
+	double min_step = 2;
+	int32 min_resolution = 3;
+	double min_bias = 4;
+	double min_safe_start = 5;
+	int32 min_count = 6;
+	int32 round_min = 7;
+}
+
+message AppConfig {
+	GenerationConfig generation = 1;
+	DemandConfig demand = 2;
+	MarkupConfig markup = 3;
+	TransitConfig transit = 4;
+	LogisticsConfig logistics = 5;
+	StockConfig stock = 6;
+	GuardrailsConfig guardrails = 7;
+}
+
+// -----------------------------------------------------------------------------
+// SECTION 2: RUNTIME PIPELINE PAYLOADS
+// -----------------------------------------------------------------------------
+
+message ProductItem {
+	string id = 1;
+	int32 price = 2;
+	int32 size = 3;
+	double logistics = 4;
+	string transit = 5;
+	double transit_size = 6;
+	double transit_cost = 7;
+	double demand = 8;
+	double markup = 9;
+	int32 stock = 10;
+}
+
+message GenerateCatalogRequest {
+	AppConfig config = 1;
+}
+
+message GenerateCatalogResponse {
+	repeated ProductItem products = 1;
+	int64 generated_count = 2;
+}
+
+message OptimizeCatalogRequest {
+	AppConfig config = 1;
+	repeated ProductItem products = 2;
+}
+
+message OptimizeCatalogResponse {
+	string status = 1;
+	double objective_value = 2;
+	int64 selected_count = 3;
+}
+
+message RunPipelineRequest {
+	AppConfig config = 1;
+}
+
+message RunPipelineResponse {
+	string status = 1;
+	double objective_value = 2;
+	int64 generated_count = 3;
+	int64 selected_count = 4;
+}
+
+// -----------------------------------------------------------------------------
+// SECTION 3: LIGHTWEIGHT ESTIMATION
+// -----------------------------------------------------------------------------
+
+message ZoneSpec {
+	string mode = 1;
+	double span_share = 2;
+	int32 resolution = 3;
+	double step = 4;
+	double bias = 5;
+}
+
+message EstimateRequest {
+	double price_min = 1;
+	double price_max = 2;
+	double size_min = 3;
+	double size_max = 4;
+	repeated ZoneSpec price_zones = 5;
+	repeated ZoneSpec size_zones = 6;
+}
+
+message EstimateResponse {
+	int64 estimated_products = 1;
+	string strategy = 2;
+}
+
+service ProductEstimator {
+	rpc GenerateCatalog(GenerateCatalogRequest) returns (GenerateCatalogResponse);
+	rpc OptimizeCatalog(OptimizeCatalogRequest) returns (OptimizeCatalogResponse);
+	rpc RunPipeline(RunPipelineRequest) returns (RunPipelineResponse);
+	rpc EstimateProducts(EstimateRequest) returns (EstimateResponse);
+}

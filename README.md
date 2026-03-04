@@ -2,57 +2,38 @@
 
 **Full-stack optimization platform**: Python optimization engine + Spring Boot API + React UI
 
-## Quick Start
+## TODO
 
-### First Time Setup
+### FOR VITE GUI
 
-```bash
-# Windows
-run.bat install
+* add database view
+* add SQL queires and other commands.
+* add option to export data to CSV or Excel.
+* add filters and sorting options for the data.
 
-# Mac/Linux
-./run.sh install
+#### IMPLEMENTATION
+
+1. populate java packages: ``dto``, ``dao``,``repository``, ``service``, ``controller``. add java classes for each package. implement basic functionality for each class. wire up the GUI to the backend services.`
+
+Use Spring, JPA, annotations, and other tools to simplify development and ensure best practices. Code java with interfaces, records and use lambdas where appropriate.
+
+2. Find and insert typescript/javascript+css database template.
+
+3. add database connection and queries. implement data insertion and update operations. add postgres python functions for data manipulation and retrieval. organize arg runs and other backend processes. wire to GUI.
+
+Find a way to simplify testing different functions and features. GUI should expose different versions of the algorithm with different parameters. add a way to compare results and performance of different versions.
+
+#### MISC
+
+##### resolve `python/generator.py` 
+
+```python
+ProductItemMessage = getattr(algsolver_pb2, "ProductItem")
 ```
 
-### Run the Application
+* rewrite the code to use the generated protobuf classes directly.
 
-**Development Mode** (with hot reload):
+* use a more dynamic approach to access the protobuf classes, such as using a factory pattern or a registry of classes.
 
-```bash
-# Windows
-run.bat dev
+* write the protobuf classes in a way that they can be easily accessed without needing to use `getattr`.
 
-# Mac/Linux
-./run.sh dev
-```
-
-- Frontend: http://localhost:3000 (Vite dev server)
-- Backend: http://localhost:8080 (Spring Boot API)
-
-**Production Mode** (optimized build):
-
-```bash
-# Windows
-run.bat build
-run.bat start
-
-# Mac/Linux
-./run.sh build
-./run.sh start
-```
-
-- Opens automatically at http://localhost:8080
-
-### Generate Product Data
-
-```bash
-# Windows
-run.bat generate
-
-# Mac/Linux
-./run.sh generate
-```
-
-### All Commands
-
-Run `run.bat` or `./run.sh` without arguments to see all available commands.
