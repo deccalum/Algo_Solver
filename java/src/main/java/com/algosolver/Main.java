@@ -2,14 +2,12 @@ package com.algosolver;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 @SpringBootApplication
-@ConfigurationPropertiesScan(basePackages = "com.algosolver.config")
 public class Main {
 
     public static void main(String[] args) {
