@@ -11,11 +11,13 @@
 * add option to export data to CSV or Excel.
 * add filters and sorting options for the data.
 
+* clearly seperate layers GENERATION -> SOLVER
+* add compare between outputs of different configurations
+* program needs to runable without setting certain fields like eg. demand.
+
 #### IMPLEMENTATION
 
 1. populate java packages: ``dto``, ``dao``,``repository``, ``service``, ``controller``. add java classes for each package. implement basic functionality for each class. wire up the GUI to the backend services.`
-
-Use Spring, JPA, annotations, and other tools to simplify development and ensure best practices. Code java with interfaces, records and use lambdas where appropriate.
 
 2. Find and insert typescript/javascript+css database template.
 

@@ -1,0 +1,21 @@
+.appContainer {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background: linear-gradient(135deg, #0f172a 0%, #1a1f3a 100%);
+    color: #e5e7eb;
+    overflow: hidden;
+}
+
+.pageContainer {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    background: linear-gradient(135deg, #0f172a 0%, #1a1f3a 100%);
+}
+
+@media (max-width: 768px) {
+    .appContainer {
+        height: 100%;
+    }
+}

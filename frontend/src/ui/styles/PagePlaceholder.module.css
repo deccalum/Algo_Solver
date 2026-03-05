@@ -1,0 +1,37 @@
+.container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    background: linear-gradient(135deg, #0f172a 0%, #1a1f3a 100%);
+    overflow-y: auto;
+}
+
+.placeholder {
+    text-align: center;
+    padding: 2rem;
+    max-width: 500px;
+}
+
+.placeholder h2 {
+    margin: 0 0 1rem 0;
+    font-size: 2rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #a78bfa 0%, #c4b5fd 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.placeholder p {
+    margin: 0.5rem 0;
+    color: #d1d5db;
+    font-size: 1.1rem;
+}
+
+.subtitle {
+    color: #9ca3af;
+    font-style: italic;
+    margin-top: 1rem;
+}
