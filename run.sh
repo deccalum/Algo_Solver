@@ -44,14 +44,14 @@ case "$1" in
         print_info "Starting Spring Boot server..."
         cd "$JAVA_DIR"
         mvn spring-boot:run
-        # Browser auto-opens at http://localhost:8080
+        # Browser auto-opens at http://localhost:9091
         ;;
     
     dev)
         print_header "Starting Development Servers"
         print_info "This will start:"
         print_info "  • Frontend dev server: http://localhost:3000"
-        print_info "  • Backend API server:  http://localhost:8080"
+        print_info "  • Backend API server:  http://localhost:9091"
         print_info ""
         print_info "Starting backend first..."
         
@@ -73,14 +73,14 @@ case "$1" in
     frontend)
         print_header "Starting Frontend Dev Server Only"
         print_info "Dev server: http://localhost:3000"
-        print_info "API proxy:  http://localhost:8080"
+        print_info "API proxy:  http://localhost9091"
         cd "$FRONTEND_DIR"
         npm run dev
         ;;
     
     backend)
         print_header "Starting Backend API Server Only"
-        print_info "Spring Boot: http://localhost:8080"
+        print_info "Spring Boot: http://localhost9091"
         print_info "Browser will auto-open"
         cd "$JAVA_DIR"
         mvn spring-boot:run
@@ -175,14 +175,14 @@ Usage: ./run.sh [command]
 
 📦 FULL-STACK COMMANDS:
   start          Start production app (builds frontend + runs backend)
-                 → Opens http://localhost:8080 automatically
+                 → Opens http://localhost9091 automatically
   
   dev            Start dev servers (frontend + backend)
                  → Frontend: http://localhost:3000 (with hot reload)
-                 → Backend:  http://localhost:8080
+                 → Backend:  http://localhost9091
   
   frontend       Start only frontend dev server (port 3000)
-  backend        Start only backend server (port 8080)
+  backend        Start only backend server (port 9091)
   build          Build complete application for production
   
 🐍 PYTHON OPTIMIZATION ENGINE:
@@ -208,9 +208,9 @@ Usage: ./run.sh [command]
   - Frontend:       frontend/vite.config.js
   
 🌐 URLs:
-  Production:  http://localhost:8080  (Spring Boot serves React)
+  Production:  http://localhost9091  (Spring Boot serves React)
   Development: http://localhost:3000  (Vite dev server with HMR)
-               http://localhost:8080  (Spring Boot API)
+               http://localhost9091  (Spring Boot API)
 
 ⚙️  DISABLE AUTO-BROWSER:
   Edit java/src/main/resources/application.properties:

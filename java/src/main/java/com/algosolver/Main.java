@@ -36,7 +36,7 @@ class BrowserLauncher {
         if (Boolean.parseBoolean(openFrontendDev)) {
             url = "http://localhost:3000";
         } else {
-            String port = env.getProperty("server.port", "8080");
+            String port = env.getProperty("server.port", "9091");
             url = "http://localhost:" + port;
         }
 

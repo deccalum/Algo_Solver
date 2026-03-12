@@ -46,7 +46,7 @@ echo ========================================
 echo.
 echo This will start:
 echo   • Frontend dev server: http://localhost:3000
-echo   • Backend API server:  http://localhost:8080
+echo   • Backend API server:  http://localhost:9091
 echo.
 where mvn >nul 2>&1
 if errorlevel 1 (
@@ -71,7 +71,7 @@ echo Starting Frontend Dev Server Only
 echo ========================================
 echo.
 echo Dev server: http://localhost:3000
-echo API proxy:  http://localhost:8080
+echo API proxy:  http://localhost:9091
 cd /d "%FRONTEND_DIR%"
 call npm run dev
 goto :eof
@@ -82,7 +82,7 @@ echo ========================================
 echo Starting Backend API Server Only
 echo ========================================
 echo.
-echo Spring Boot: http://localhost:8080
+echo Spring Boot: http://localhost:9091
 echo Browser will auto-open
 cd /d "%JAVA_DIR%"
 call mvn spring-boot:run
@@ -199,14 +199,14 @@ echo Usage: run.bat [command]
 echo.
 echo 📦 FULL-STACK COMMANDS:
 echo   start          Start production app (builds frontend + runs backend)
-echo                  → Opens http://localhost:8080 automatically
+echo                  → Opens http://localhost:9091 automatically
 echo.
 echo   dev            Start dev servers (frontend + backend)
 echo                  → Frontend: http://localhost:3000 (with hot reload)
-echo                  → Backend:  http://localhost:8080
+echo                  → Backend:  http://localhost:9091
 echo.
 echo   frontend       Start only frontend dev server (port 3000)
-echo   backend        Start only backend server (port 8080)
+echo   backend        Start only backend server (port 9091)
 echo   build          Build complete application for production
 echo.
 echo 🐍 PYTHON OPTIMIZATION ENGINE:
@@ -232,9 +232,9 @@ echo   - Spring Boot:    java\src\main\resources\application.properties
 echo   - Frontend:       frontend\vite.config.js
 echo.
 echo 🌐 URLs:
-echo   Production:  http://localhost:8080  (Spring Boot serves React)
+echo   Production:  http://localhost:9091  (Spring Boot serves React)
 echo   Development: http://localhost:3000  (Vite dev server with HMR)
-echo                http://localhost:8080  (Spring Boot API)
+echo                http://localhost:9091  (Spring Boot API)
 echo.
 echo ⚙️  DISABLE AUTO-BROWSER:
 echo   Edit java\src\main\resources\application.properties:
