@@ -50,28 +50,11 @@ def _map_value(target_type: Any, value: Any) -> Any:
     return value
 
 
-def from_proto(cls: Type[T], proto_msg: Any) -> T:
-    if not is_dataclass(cls):
-        raise TypeError(f"Target class {cls} must be a dataclass")
-
-    kwargs = {}
-    for field in fields(cls):
-        if _has_field(proto_msg, field.name):
-            raw = getattr(proto_msg, field.name)
-            kwargs[field.name] = _map_value(field.type, raw)
-            continue
-
-        if field.default is not MISSING:
-            kwargs[field.name] = field.default
-            continue
-
-        if field.default_factory is not MISSING:  # type: ignore[attr-defined]
-            kwargs[field.name] = field.default_factory()  # type: ignore[misc]
-            continue
-
-        raise ValueError(f"Missing required field '{field.name}' for {cls.__name__}")
-
-    return cls(**kwargs)
+def from_proto(cls: Type[T], proto_msg, overrides: dict | None = None) -> T:
+    field_values = {f.name: getattr(proto_msg, f.name) for f in fields(cls)}
+    if overrides:
+        field_values.update(overrides)
+    return cls(**field_values)
 
 
 def from_proto_list(cls: Type[T], proto_messages: Any) -> list[T]:

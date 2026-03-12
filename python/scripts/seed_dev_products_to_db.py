@@ -1,8 +1,8 @@
 import os
 from typing import Any, Iterable
 
-from dev_default import dev_default
-from generator import ProductGenerator
+from python.config.dev_default import dev_default
+from python.core.generator import ProductGenerator
 
 
 def _require_psycopg():

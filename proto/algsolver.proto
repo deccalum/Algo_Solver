@@ -7,21 +7,19 @@ option java_multiple_files = true;
 option java_outer_classname = "AlgSolverProto";
 
 // -----------------------------------------------------------------------------
-// SECTION 1: ALGORITHM INPUT CONFIGURATION
+// SECTION 1: ALGORITHM INPUT
 // -----------------------------------------------------------------------------
 
-message GenerationConfig {
+message Generation {
     double budget = 1;
     double space = 2;
 	double min_price = 3;
 	double max_price = 4;
 	double min_size = 5;
 	double max_size = 6;
-	double logistics_optimal = 7;
-	double logistics_base_cost = 8;
-	repeated ZoneConfig price_zones = 9;
-	repeated ZoneConfig size_zones = 10;
-	ZoneDefaults zone_defaults = 11;
+	repeated Zone price_zones = 7;
+	repeated Zone size_zones = 8;
+	ZoneDefaults zone_defaults = 9;
 }
 
 message ZoneDefaults {
@@ -32,7 +30,7 @@ message ZoneDefaults {
 	double step = 5;
 }
 
-message ZoneConfig {
+message Zone {
 	string mode = 1;
 	double span_share = 2;
 	int32 resolution = 3;
@@ -40,7 +38,7 @@ message ZoneConfig {
 	double step = 5;
 }
 
-message DemandConfig {
+message Demand {
 	double base_demand = 1;
 	double price_scale = 2;
 	double size_scale = 3;
@@ -51,7 +49,7 @@ message DemandConfig {
 	double max_demand = 8;
 }
 
-message MarkupConfig {
+message Markup {
 	double base_rate = 1;
 	double price_scale = 2;
 	double max_rate = 3;
@@ -61,58 +59,56 @@ message MarkupConfig {
 	double max_rate_clamp = 7;
 }
 
-message TransitConfig {
-	double pallet_base_weight = 1;
-	double container_base_weight = 2;
-	double courier_base_weight = 3;
-	double large_size_threshold = 4;
-	double medium_size_threshold = 5;
-	double small_size_threshold = 6;
-	double high_density_threshold = 7;
-	double large_container_multiplier = 8;
-	double large_pallet_multiplier = 9;
-	double large_courier_multiplier = 10;
-	double medium_container_multiplier = 11;
-	double medium_pallet_multiplier = 12;
-	double medium_courier_multiplier = 13;
-	double small_courier_multiplier = 14;
-	double small_pallet_multiplier = 15;
-	double small_container_multiplier = 16;
-	double default_pallet_multiplier = 17;
-	double default_container_multiplier = 18;
-	double courier_capacity = 19;
-	double courier_cost = 20;
-	double pallet_capacity = 21;
-	double pallet_cost = 22;
-	double container_capacity = 23;
-	double container_cost = 24;
-	double density_epsilon = 25;
+message TransitMode {
+	string name = 1;
+	float capacity = 2;
+	float base_cost = 3;
+	float max_value_density = 4;
+	float min_weight_class = 5;
 }
 
-message LogisticsConfig {
-	double penalty_factor = 1;
-	double max_difficulty = 2;
-	double min_size_log = 3;
+message Transit {
+	TransitMode courier              		= 1;
+	TransitMode pallet              		= 2;
+	TransitMode container            		= 3;
+	float       min_capacity_epsilon 		= 4;
+	float       weight_volume_ratio  		= 5;
+	float       origin						= 6;
+	ZoneSpec    origin_zone          		= 7;
 }
 
-message StockConfig {
-	double base_stock = 1;
-	int32 min_stock = 2;
-	double noise = 3;
-	int32 infinite_stock_value = 4;
+message TransitResult {
+	string mode 	= 1;
+	float capacity 	= 2;
+	float cost 		= 3;
+}
+
+message Logistics {
+    float min_size_log    = 1;
+    float penalty_factor  = 2;
+    float max_difficulty  = 3;
+    float optimal         = 4;
+    float base_cost       = 5;
+}
+
+message Stock {
+	double base_stock 			= 1;
+	int32 min_stock 			= 2;
+	double noise 				= 3;
+	int32 infinite_stock_value 	= 4;
 	double infinite_chance_base = 5;
 	double infinite_decay_scale = 6;
-	double infinite_decay_size_multiplier = 7;
-	double price_scale = 8;
-	double size_scale = 9;
-	double price_sensitivity = 10;
-	double size_sensitivity = 11;
-	double min_price_norm = 12;
-	double min_size_norm = 13;
-	double min_scale = 14;
+	double infinite_decay_size 	= 7;
+	double price_scale 			= 8;
+	double size_scale 			= 9;
+	double price_sensitivity 	= 10;
+	double size_sensitivity 	= 11;
+	double min_price_norm 		= 12;
+	double min_size_norm 		= 13;
+	double min_scale 			= 14;
 }
 
-message GuardrailsConfig {
+message Guardrails {
 	double min_span = 1;
 	double min_step = 2;
 	int32 min_resolution = 3;
@@ -123,20 +119,20 @@ message GuardrailsConfig {
 }
 
 message AppConfig {
-	GenerationConfig generation = 1;
-	DemandConfig demand = 2;
-	MarkupConfig markup = 3;
-	TransitConfig transit = 4;
-	LogisticsConfig logistics = 5;
-	StockConfig stock = 6;
-	GuardrailsConfig guardrails = 7;
+	Generation generation = 1;
+	Demand demand = 2;
+	Markup markup = 3;
+	Transit transit = 4;
+	Logistics logistics = 5;
+	Stock stock = 6;
+	Guardrails guardrails = 7;
 }
 
 // -----------------------------------------------------------------------------
 // SECTION 2: RUNTIME PIPELINE PAYLOADS
 // -----------------------------------------------------------------------------
 
-message ProductItem {
+message Product {
 	string id = 1;
 	int32 price = 2;
 	int32 size = 3;
@@ -154,13 +150,13 @@ message GenerateCatalogRequest {
 }
 
 message GenerateCatalogResponse {
-	repeated ProductItem products = 1;
+	repeated Product products = 1;
 	int64 generated_count = 2;
 }
 
 message OptimizeCatalogRequest {
-	AppConfig config = 1;
-	repeated ProductItem products = 2;
+	AppConfig			config 		= 1;
+	repeated Product 	products 	= 2;
 }
 
 message OptimizeCatalogResponse {

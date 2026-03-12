@@ -1,7 +1,8 @@
-import algsolver_pb2
+import python.proto.algsolver_pb2 as algsolver_pb2
+from typing import Any
 
 
-def build_dev_default() -> object:
+def build_dev_default() -> Any:
     config = getattr(algsolver_pb2, "AppConfig")()
 
     config.generation.budget = 50000.0
@@ -10,8 +11,6 @@ def build_dev_default() -> object:
     config.generation.max_price = 10000.0
     config.generation.min_size = 0.1
     config.generation.max_size = 100000.0
-    config.generation.logistics_optimal = 2000.0
-    config.generation.logistics_base_cost = 0.5
 
     price_zone = config.generation.price_zones.add()
     price_zone.span_share = 0.0
@@ -50,7 +49,7 @@ def build_dev_default() -> object:
 
     size_zone = config.generation.size_zones.add()
     size_zone.span_share = 0.3
-    size_zone.mode = "u_shape"
+    size_zone.mode = "gaussian"
     size_zone.resolution = 352
     size_zone.step = 1.0
     size_zone.bias = 1.0
@@ -64,12 +63,13 @@ def build_dev_default() -> object:
 
     size_zone = config.generation.size_zones.add()
     size_zone.span_share = 0.3
-    size_zone.mode = "u_shape"
+    size_zone.mode = "gaussian"
     size_zone.resolution = 352
     size_zone.step = 1.0
     size_zone.bias = 1.0
 
     config.generation.zone_defaults.span_share = 1.0
+    config.generation.zone_defaults.mode = "power"
     config.generation.zone_defaults.resolution = 10
     config.generation.zone_defaults.bias = 1.0
     config.generation.zone_defaults.step = 1.0
@@ -99,35 +99,38 @@ def build_dev_default() -> object:
     config.markup.min_rate = 0.01
     config.markup.max_rate_clamp = 0.99
 
-    config.transit.pallet_base_weight = 0.6
-    config.transit.container_base_weight = 0.3
-    config.transit.courier_base_weight = 0.1
-    config.transit.large_size_threshold = 60000.0
-    config.transit.medium_size_threshold = 8000.0
-    config.transit.small_size_threshold = 100.0
-    config.transit.high_density_threshold = 10.0
-    config.transit.large_container_multiplier = 2.5
-    config.transit.large_pallet_multiplier = 0.5
-    config.transit.large_courier_multiplier = 0.05
-    config.transit.medium_container_multiplier = 1.3
-    config.transit.medium_pallet_multiplier = 1.1
-    config.transit.medium_courier_multiplier = 0.2
-    config.transit.small_courier_multiplier = 3.0
-    config.transit.small_pallet_multiplier = 0.8
-    config.transit.small_container_multiplier = 0.2
-    config.transit.default_pallet_multiplier = 1.4
-    config.transit.default_container_multiplier = 0.8
-    config.transit.courier_capacity = 50.0
-    config.transit.courier_cost = 20.0
-    config.transit.pallet_capacity = 5000.0
-    config.transit.pallet_cost = 400.0
-    config.transit.container_capacity = 50000.0
-    config.transit.container_cost = 1500.0
-    config.transit.density_epsilon = 0.001
-
+    config.logistics.optimal = 2000.0
+    config.logistics.base_cost = 0.5
     config.logistics.penalty_factor = 0.15
     config.logistics.max_difficulty = 0.95
     config.logistics.min_size_log = 1.0
+
+    config.transit.courier.name = "COURIER"
+    config.transit.courier.capacity = 50.0
+    config.transit.courier.base_cost = 45.0
+    config.transit.courier.max_value_density = 1000.0
+    config.transit.courier.min_weight_class = 0.0
+
+    config.transit.pallet.name = "PALLET"
+    config.transit.pallet.capacity = 5000.0
+    config.transit.pallet.base_cost = 750.0
+    config.transit.pallet.max_value_density = 250.0
+    config.transit.pallet.min_weight_class = 50.0
+
+    config.transit.container.name = "CONTAINER"
+    config.transit.container.capacity = 50000.0
+    config.transit.container.base_cost = 3500.0
+    config.transit.container.max_value_density = 80.0
+    config.transit.container.min_weight_class = 500.0
+
+    config.transit.min_capacity_epsilon = 1e-6
+    config.transit.weight_volume_ratio = 0.25
+    config.transit.origin = 1.3
+    config.transit.origin_zone.mode = "power"
+    config.transit.origin_zone.span_share = 1.0
+    config.transit.origin_zone.resolution = 8
+    config.transit.origin_zone.step = 1.0
+    config.transit.origin_zone.bias = 1.0
 
     config.stock.base_stock = 5000.0
     config.stock.min_stock = 20
@@ -135,7 +138,7 @@ def build_dev_default() -> object:
     config.stock.infinite_stock_value = 2147483647
     config.stock.infinite_chance_base = 0.08
     config.stock.infinite_decay_scale = 4000.0
-    config.stock.infinite_decay_size_multiplier = 4.0
+    config.stock.infinite_decay_size = 4.0
     config.stock.price_scale = 10000.0
     config.stock.size_scale = 100000.0
     config.stock.price_sensitivity = 1.0
@@ -145,6 +148,10 @@ def build_dev_default() -> object:
     config.stock.min_scale = 10.0
 
     return config
+
+
+def build_dev_config() -> Any:
+    return build_dev_default()
 
 
 dev_default = build_dev_default()

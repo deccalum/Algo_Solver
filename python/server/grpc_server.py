@@ -4,12 +4,12 @@ import os
 
 import grpc
 
-import algsolver_pb2
-import algsolver_pb2_grpc
-from common import log
-from generator import ProductGenerator
+import python.proto.algsolver_pb2 as algsolver_pb2
+import python.proto.algsolver_pb2_grpc as algsolver_pb2_grpc
+from python.common import log
+from python.core.generator import ProductGenerator
 from mapper import to_proto
-from solver import ProcurementOptimizer, SolverConfig
+from python.core.solver import ProcurementOptimizer, SolverConfig
 
 GenerateCatalogResponseMessage = getattr(algsolver_pb2, "GenerateCatalogResponse")
 OptimizeCatalogResponseMessage = getattr(algsolver_pb2, "OptimizeCatalogResponse")

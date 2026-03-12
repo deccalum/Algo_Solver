@@ -1,16 +1,23 @@
-"""
-procurement engine
-Multi-Period Inventory Purchase Optimization using Integer Programming
-Solver: Google OR-Tools SCIP
-"""
-
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Protocol
 
 from ortools.linear_solver import pywraplp
 
-import algsolver_pb2
-from common import format_price, format_volume, log
+import python.proto.algsolver_pb2 as algsolver_pb2
+from python.common import format_price, format_volume, log
+
+
+class ProductLike(Protocol):
+    id: str
+    price: float
+    size: float
+    logistics: float
+    transit: str
+    transit_size: float
+    transit_cost: float
+    demand: float
+    markup: float
+    stock: int
 
 
 @dataclass
@@ -33,10 +40,10 @@ class ProcurementOptimizer:
         log("solver", message)
 
     def _calculate_transit_cost(
-        self, solver: pywraplp.Solver, products: List[algsolver_pb2.ProductItem]
+        self, solver: pywraplp.Solver, products: List[ProductLike]
     ) -> Any:
         """Calculate total transit costs grouped by transit mode."""
-        grouped: Dict[str, List[algsolver_pb2.ProductItem]] = {}
+        grouped: Dict[str, List[ProductLike]] = {}
         for product in products:
             grouped.setdefault(product.transit, []).append(product)
 
@@ -47,6 +54,11 @@ class ProcurementOptimizer:
 
             capacity = mode_products[0].transit_size
             cost_per_unit = mode_products[0].transit_cost
+            if capacity <= 0:
+                self._log(
+                    f"Transit mode {mode}: skipped because capacity is non-positive ({capacity})"
+                )
+                continue
             cost_per_size = cost_per_unit / capacity
             self._log(
                 f"Transit mode {mode}: capacity={capacity}, cost_per_unit={cost_per_unit}, "
@@ -59,7 +71,7 @@ class ProcurementOptimizer:
 
         return solver.Sum(cost_terms) if cost_terms else 0.0
 
-    def optimize(self, products: List[algsolver_pb2.ProductItem]) -> Dict:
+    def optimize(self, products: List[ProductLike]) -> Dict:
         """Run optimization and return status, objective, and selected products."""
         self._log("Optimization pipeline started")
         self._log(f"Input products: {len(products)}")
@@ -80,7 +92,7 @@ class ProcurementOptimizer:
         return self._extract_solution(solver, products, status_code)
 
     def _create_decision_variables(
-        self, solver: pywraplp.Solver, products: List[algsolver_pb2.ProductItem]
+        self, solver: pywraplp.Solver, products: List[ProductLike]
     ):
         """Create integer decision variables for each product quantity."""
         self.quantity_vars = {}
@@ -91,7 +103,7 @@ class ProcurementOptimizer:
             )
 
     def _define_objective(
-        self, solver: pywraplp.Solver, products: List[algsolver_pb2.ProductItem]
+        self, solver: pywraplp.Solver, products: List[ProductLike]
     ):
         """Define objective function: maximize revenue minus transit cost."""
         revenue_terms = []
@@ -110,7 +122,7 @@ class ProcurementOptimizer:
         solver.Maximize(total_revenue - transit_costs)
 
     def _add_constraints(
-        self, solver: pywraplp.Solver, products: List[algsolver_pb2.ProductItem]
+        self, solver: pywraplp.Solver, products: List[ProductLike]
     ):
         """Add budget and space constraints when configured."""
         if self.config.budget_constraint is not None:
@@ -134,7 +146,7 @@ class ProcurementOptimizer:
     def _extract_solution(
         self,
         solver: pywraplp.Solver,
-        products: List[algsolver_pb2.ProductItem],
+        products: List[ProductLike],
         status_code: int,
     ) -> Dict:
         """Extract solver output into serializable result dictionary."""
