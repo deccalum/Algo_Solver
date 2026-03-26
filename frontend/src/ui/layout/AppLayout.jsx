@@ -1,5 +1,6 @@
 import { useState } from "react";
-import PageHeader from "../components/PageHeader";
+import TopNav from "../components/TopNav";
+import Footer from "../components/Footer";
 import GenerationPage from "../pages/GenerationPage";
 import SolverPage from "../pages/SolverPage";
 import DatabasePage from "../pages/DatabasePage";
@@ -63,10 +64,11 @@ export default function AppLayout() {
 
     return (
         <div className={styles.appContainer}>
-            <PageHeader tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab} />
+            <TopNav />
             <div className={styles.pageContainer}>
                 {renderPage()}
             </div>
+            <Footer />
         </div>
     );
 }

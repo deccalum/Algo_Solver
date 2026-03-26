@@ -1,52 +1,47 @@
-import { useState, useEffect } from "react";
-import { ChevronDown, RotateCw, Download } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { ChevronDown, RotateCw, Download, Play } from "lucide-react";
+import { AgGridReact } from "ag-grid-react";
+import "ag-grid-community/styles/ag-grid.css";
+import "ag-grid-community/styles/ag-theme-alpine.css"; // Or ag-theme-quartz for v31+
 import styles from "../styles/DatabasePage.module.css";
 
-async function fetchTables() {
-  try {
-    const response = await fetch("http://localhost9091/api/database/tables");
-    if (!response.ok) throw new Error("Failed to fetch tables");
-    return await response.json();
-  } catch (error) {
-    console.error("Error fetching tables:", error);
-    return [];
-  }
+async function get(path) {
+  const res = await fetch(`/api${path}`);
+  if (!res.ok) throw new Error(`GET ${path} failed: ${res.status}`);
+  return res.json();
 }
 
-async function fetchTableData(tableName) {
-  try {
-    const response = await fetch(
-      `http://localhost9091/api/database/tables/${tableName}/data`,
-    );
-    if (!response.ok) throw new Error(`Failed to fetch data for ${tableName}`);
-    return await response.json();
-  } catch (error) {
-    console.error(`Error fetching data for ${tableName}:`, error);
-    return [];
-  }
-}
-
-async function fetchTableSchema(tableName) {
-  try {
-    const response = await fetch(
-      `http://localhost9091/api/database/tables/${tableName}/schema`,
-    );
-    if (!response.ok)
-      throw new Error(`Failed to fetch schema for ${tableName}`);
-    return await response.json();
-  } catch (error) {
-    console.error(`Error fetching schema for ${tableName}:`, error);
-    return [];
-  }
+async function post(path, body = {}) {
+  const res = await fetch(`/api${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`POST ${path} failed: ${res.status}`);
+  return res.json();
 }
 
 export default function DatabasePage() {
   const [tables, setTables] = useState([]);
   const [expandedTable, setExpandedTable] = useState(null);
-  const [tableData, setTableData] = useState({});
   const [tableSchemas, setTableSchemas] = useState({});
   const [loading, setLoading] = useState(false);
+  const [running, setRunning] = useState(false);
+  const [runStatus, setRunStatus] = useState(null);
   const [error, setError] = useState(null);
+  const [tableErrors, setTableErrors] = useState({});
+  const [gridApis, setGridApis] = useState({});
+
+  const defaultColDef = useMemo(
+    () => ({
+      sortable: true,
+      filter: true,
+      resizable: true,
+      flex: 1,
+      minWidth: 150,
+    }),
+    [],
+  );
 
   useEffect(() => {
     loadTables();
@@ -55,75 +50,143 @@ export default function DatabasePage() {
   const loadTables = async () => {
     setLoading(true);
     setError(null);
-    const fetchedTables = await fetchTables();
-    setTables(fetchedTables);
-    setLoading(false);
+    try {
+      setTables(await get("/database/tables"));
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const toggleTable = async (tableName) => {
-    if (expandedTable === tableName) {
+  const runDevPipeline = async () => {
+    setRunning(true);
+    setRunStatus(null);
+    try {
+      const result = await post("/pipeline/run-dev");
+      setRunStatus({
+        ok: true,
+        message: `Pipeline finished. Objective: ${result.objective_value?.toFixed(4) || "N/A"}`,
+      });
+      setTableSchemas({});
+      setTableErrors({});
+      setGridApis({});
       setExpandedTable(null);
-    } else {
-      setExpandedTable(tableName);
-      if (!tableData[tableName]) {
-        const [data, schema] = await Promise.all([
-          fetchTableData(tableName),
-          fetchTableSchema(tableName),
-        ]);
-        setTableData((prev) => ({ ...prev, [tableName]: data }));
-        setTableSchemas((prev) => ({ ...prev, [tableName]: schema }));
+      await loadTables();
+    } catch (e) {
+      setRunStatus({ ok: false, message: e.message });
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  const downloadCSV = (tableName) => {
+    const api = gridApis[tableName];
+    if (!api) return;
+    api.exportDataAsCsv({ fileName: `${tableName}.csv` });
+  };
+
+  const toggleTable = async (name) => {
+    setExpandedTable((prev) => (prev === name ? null : name));
+
+    if (!tableSchemas[name]) {
+      try {
+        const schema = await get(`/database/tables/${name}/schema`);
+        setTableSchemas((prev) => ({ ...prev, [name]: schema }));
+      } catch (e) {
+        setTableErrors((prev) => ({ ...prev, [name]: e.message }));
       }
     }
   };
 
-  const downloadTableAsCSV = (tableName) => {
-    const data = tableData[tableName] || [];
+  const onGridReady = (params, tableName) => {
+    setGridApis((prev) => ({ ...prev, [tableName]: params.api }));
+
+    const dataSource = {
+      getRows: async (request) => {
+        try {
+          const { startRow, endRow, filterModel } = request;
+          const limit = Math.max(endRow - startRow, 1);
+
+          const searchParams = new URLSearchParams({
+            limit: String(limit),
+            offset: String(startRow),
+          });
+
+          if (filterModel && Object.keys(filterModel).length > 0) {
+            searchParams.set("filters", JSON.stringify(filterModel));
+          }
+
+          const data = await get(
+            `/database/tables/${tableName}/data?${searchParams.toString()}`,
+          );
+
+          let lastRow = -1;
+          if (data.length < limit) {
+            lastRow = startRow + data.length;
+          }
+
+          request.successCallback(data, lastRow);
+        } catch {
+          request.failCallback();
+        }
+      },
+    };
+
+    params.api.setGridOption("datasource", dataSource);
+  };
+
+  // Maps dynamic schema to AG Grid column definitions
+  const getColumnDefs = (tableName) => {
     const schema = tableSchemas[tableName] || [];
-    if (!data.length) return;
-
-    const columns = schema.map((col) => col.name);
-    const csv = [
-      columns.join(","),
-      ...data.map((row) =>
-        columns.map((col) => JSON.stringify(row[col])).join(","),
-      ),
-    ].join("\n");
-
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${tableName}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    return schema.map((col) => ({
+      field: col.name,
+      headerName: `${col.name} (${col.type})`,
+      valueFormatter: (params) => {
+        if (params.value == null) return "NULL";
+        if (typeof params.value === "boolean")
+          return params.value ? "true" : "false";
+        if (typeof params.value === "object")
+          return JSON.stringify(params.value);
+        return String(params.value);
+      },
+    }));
   };
 
   return (
     <main className={styles.container}>
       <div className={styles.header}>
-        <h2>Database Tables</h2>
-        <button
-          className={styles.refreshButton}
-          onClick={loadTables}
-          disabled={loading}
-          title="Refresh tables"
-        >
-          <RotateCw size={18} />
-        </button>
+        <h2>Database</h2>
+        <div className={styles.headerActions}>
+          <button
+            className={styles.runButton}
+            onClick={runDevPipeline}
+            disabled={running}
+          >
+            <Play size={16} /> {running ? "Running…" : "Run Dev Pipeline"}
+          </button>
+          <button
+            className={styles.refreshButton}
+            onClick={loadTables}
+            disabled={loading}
+          >
+            <RotateCw size={18} />
+          </button>
+        </div>
       </div>
 
+      {runStatus && (
+        <div className={runStatus.ok ? styles.success : styles.error}>
+          {runStatus.message}
+        </div>
+      )}
       {error && <div className={styles.error}>{error}</div>}
 
       <div className={styles.tablesList}>
-        {loading && <p className={styles.loading}>Loading tables...</p>}
-
-        {tables.length === 0 && !loading && (
-          <p className={styles.emptyState}>
-            No tables found. Make sure the backend is running on
-            http://localhost9091
-          </p>
+        {loading ? (
+          <p>Loading…</p>
+        ) : (
+          tables.length === 0 && <p>No tables found.</p>
         )}
 
         {tables.map((table) => (
@@ -144,47 +207,36 @@ export default function DatabasePage() {
 
             {expandedTable === table.name && (
               <div className={styles.tableContent}>
-                <div className={styles.tableToolbar}>
-                  <button
-                    className={styles.downloadButton}
-                    onClick={() => downloadTableAsCSV(table.name)}
-                    title="Download as CSV"
-                  >
-                    <Download size={16} />
-                    Export CSV
-                  </button>
-                </div>
+                {tableErrors[table.name] ? (
+                  <div className={styles.error}>
+                    Error: {tableErrors[table.name]}
+                  </div>
+                ) : (
+                  <>
+                    <button
+                      className={styles.downloadButton}
+                      onClick={() => downloadCSV(table.name)}
+                    >
+                      <Download size={16} /> Export CSV
+                    </button>
 
-                <div className={styles.tableWrapper}>
-                  <table className={styles.table}>
-                    <thead>
-                      <tr>
-                        {(tableSchemas[table.name] || []).map((col) => (
-                          <th key={col.name} className={styles.columnHeader}>
-                            {col.name}
-                            <span className={styles.columnType}>
-                              {col.type}
-                            </span>
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(tableData[table.name] || []).map((row, idx) => (
-                        <tr key={idx} className={styles.tableRow}>
-                          {(tableSchemas[table.name] || []).map((col) => (
-                            <td key={col.name} className={styles.tableCell}>
-                              {formatCellValue(row[col.name])}
-                            </td>
-                          ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {(tableData[table.name]?.length || 0) === 0 && (
-                  <p className={styles.noData}>No data in this table</p>
+                    <div
+                      className="ag-theme-alpine-dark" // Matches your UI better
+                      style={{ height: 600, width: "100%", marginTop: "1rem" }}
+                    >
+                      <AgGridReact
+                        columnDefs={getColumnDefs(table.name)}
+                        defaultColDef={defaultColDef}
+                        rowModelType="infinite"
+                        cacheBlockSize={100}
+                        maxBlocksInCache={1}
+                        maxConcurrentDatasourceRequests={1}
+                        onGridReady={(params) =>
+                          onGridReady(params, table.name)
+                        }
+                      />
+                    </div>
+                  </>
                 )}
               </div>
             )}
@@ -193,17 +245,4 @@ export default function DatabasePage() {
       </div>
     </main>
   );
-}
-
-function formatCellValue(value) {
-  if (value === null || value === undefined) {
-    return <span className="null">NULL</span>;
-  }
-  if (typeof value === "boolean") {
-    return value ? "true" : "false";
-  }
-  if (typeof value === "object") {
-    return JSON.stringify(value);
-  }
-  return String(value);
 }

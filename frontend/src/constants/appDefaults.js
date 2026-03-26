@@ -25,7 +25,7 @@ export const APP_DEFAULTS = {
         sizeZones: [
             {
                 span_share: 0.3,
-                mode: "u_shape",
+                mode: "gaussian",
                 step: 1,
                 resolution: 352,
                 bias: 1,

@@ -15,7 +15,7 @@ export default function App() {
         <h1>Algo Solver</h1>
         <p className="error">Could not load config: {error}</p>
         <p className="hint">
-          Make sure backend is running on http://localhost9091
+          Make sure backend is running on http://localhost:18000
         </p>
         <p className="hint">Use: run.bat backend or run.bat dev</p>
       </main>

@@ -4,20 +4,20 @@ import react from '@vitejs/plugin-react'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
-  
-  // Build output goes to Spring Boot static resources
+
+  // Build output goes to dist
   build: {
-    outDir: '../java/src/main/resources/static',
+    outDir: 'dist',
     emptyOutDir: true,
   },
-  
-  // Proxy API calls to Spring Boot during development
+
+  // Proxy API calls to Python backend during development
   server: {
     port: 3000,
     host: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:9091',
+        target: 'http://127.0.0.1:18000',
         changeOrigin: true,
       },
     },

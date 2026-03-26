@@ -1,0 +1,838 @@
+.page {
+    flex: 1;
+    overflow-y: auto;
+    padding: 32px;
+    color: #e7ebff;
+    background:
+        radial-gradient(circle at top left, rgba(89, 94, 255, 0.16), transparent 28%),
+        radial-gradient(circle at top right, rgba(87, 214, 245, 0.12), transparent 24%),
+        linear-gradient(180deg, #11172b 0%, #0b1020 100%);
+}
+
+.page {
+    flex: 1;
+    overflow-y: auto;
+    background: #12121e;
+    color: #e3e0f2;
+    font-family: Consolas, monospace;
+}
+
+.mainColumn {
+    min-height: 100%;
+    padding: 16px 18px 20px;
+}
+
+.topNav {
+    display: grid;
+    grid-template-columns: 148px 1fr auto;
+    align-items: center;
+    gap: 18px;
+    padding-bottom: 14px;
+}
+
+.brandBlock h1 {
+    margin: 0;
+    color: #6274ff;
+    font-size: 1.35rem;
+    font-weight: 900;
+    letter-spacing: -0.04em;
+}
+
+.brandBlock span {
+    display: block;
+    margin-top: 2px;
+    color: #66708d;
+    font-size: 0.56rem;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+}
+
+.topTabs,
+.topActions,
+.heroButtonsCompact,
+.panelActions,
+.footerIcons,
+.footerStats {
+    display: flex;
+    align-items: center;
+}
+
+.topTabs {
+    gap: 20px;
+}
+
+.topTab,
+.topTabActive {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #97a0bc;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.topTabActive {
+    color: #a7afff;
+    text-decoration: underline;
+    text-underline-offset: 5px;
+}
+
+.topActions {
+    gap: 12px;
+}
+
+.topIconButton,
+.panelActions button,
+.zoneSettings button,
+.footerIcons button,
+.sideNavActive,
+.sideNavItem,
+.topTab,
+.topTabActive,
+.ghostButton,
+.primaryButton,
+.secondaryButton,
+.modeButton,
+.modeButtonActive,
+.zoneTab,
+.zoneTabActive,
+.metricCard {
+    cursor: pointer;
+}
+
+.topIconButton {
+    width: 24px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 999px;
+    color: #a4abc5;
+    background: transparent;
+}
+
+.contentShell {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: 16px;
+}
+
+.sideNav {
+    padding-top: 30px;
+}
+
+.sideNavActive,
+.sideNavItem {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 28px;
+    padding: 0 10px;
+    margin-bottom: 8px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: #9ea7c2;
+    font-size: 0.73rem;
+    font-weight: 700;
+    text-align: left;
+}
+
+.sideNavActive {
+    color: #9ca7ff;
+    background: rgba(96, 109, 255, 0.16);
+}
+
+.profileCard {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 28px;
+    padding: 0 4px;
+}
+
+.profileAvatar {
+    width: 22px;
+    height: 22px;
+}
+
+.profileCard strong,
+.profileCard span {
+    display: block;
+}
+
+.profileCard strong {
+    color: #e3e0f2;
+    font-size: 0.63rem;
+}
+
+.profileCard span {
+    color: #717b98;
+    font-size: 0.52rem;
+}
+
+.workspace {
+    min-width: 0;
+}
+
+.heroCompact {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 10px 0 14px;
+}
+
+.heroCompact h2 {
+    margin: 0;
+    font-size: 2.15rem;
+    font-weight: 900;
+    letter-spacing: -0.05em;
+}
+
+.heroCompact p {
+    margin: 4px 0 0;
+    color: #9ca3bc;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.26em;
+}
+
+.heroButtonsCompact {
+    gap: 8px;
+}
+
+.ghostButton,
+.primaryButton,
+.secondaryButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 28px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 4px;
+    font-size: 0.74rem;
+    font-weight: 800;
+}
+
+.ghostButton {
+    color: #eceeff;
+    background: #343341;
+}
+
+.primaryButton {
+    color: #1000a9;
+    background: #b6a9ff;
+}
+
+.dashboardGridExact {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: 16px;
+}
+
+.metricColumn {
+    display: grid;
+    gap: 16px;
+    align-content: start;
+    font-size: small;
+}
+
+.metricCard,
+.chartPanelExact,
+.rangeCard,
+.zonePanelExact {
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    border-radius: 6px;
+    background: #1d1d2b;
+}
+
+.metricCard {
+    width: 100%;
+    padding: 16px;
+    text-align: left;
+    border-color: rgba(255, 255, 255, 0.02);
+}
+
+.metricHeader,
+.metricBounds,
+.chartTitleRow,
+.diagnosticRow,
+.footerExact,
+.spanHeaderExact,
+.panelHeaderExact,
+.rangeHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.metricLabel,
+.metricLabelCyan {
+    font-size: 0.72rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+}
+
+.metricLabel {
+    color: #afb4ff;
+}
+
+.metricLabelCyan {
+    color: #48d6f6;
+}
+
+.metricValueWrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.metricValue {
+    font-size: 1.05rem;
+    font-weight: 900;
+    letter-spacing: -0.05em;
+    color: #f1f2ff
+}
+
+.metricEditor {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.metricInput {
+    width: 82px;
+    height: 28px;
+    padding: 0 8px;
+    color: #f1f3ff;
+    font-size: 0.9rem;
+    font-weight: 800;
+    background: #11111c;
+    border: 1px solid rgba(185, 191, 255, 0.28);
+    border-radius: 4px;
+    outline: none;
+}
+
+.metricUnit {
+    font-size: 1rem;
+    font-weight: 800;
+}
+
+.progressTrack,
+.sliderTrack {
+    position: relative;
+    overflow: hidden;
+    border-radius: 999px;
+    background: #676782;
+}
+
+.progressTrack {
+    height: 5px;
+    margin: 16px 0 10px;
+}
+
+.progressFillViolet,
+.progressFillCyan,
+.sliderActiveViolet,
+.sliderActiveCyan {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    border-radius: 999px;
+}
+
+.progressFillViolet,
+.sliderActiveViolet {
+    left: 0;
+    background: #b8b2f8;
+}
+
+.progressFillCyan,
+.sliderActiveCyan {
+    left: 0;
+    background: #49d6f6;
+}
+
+.metricBounds {
+    color: #989fbc;
+    font-size: 0.56rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.chartPanelExact {
+    padding: 16px;
+}
+
+.panelHeaderExact {
+    margin-bottom: 14px;
+}
+
+.panelTitleWrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.panelMarker {
+    width: 4px;
+    height: 24px;
+    border-radius: 999px;
+    background: #b5b0ff;
+}
+
+.panelHeaderExact h3,
+.rangeHeader h4 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 900;
+}
+
+.panelActions {
+    gap: 6px;
+}
+
+.panelActions button,
+.zoneSettings button {
+    width: 24px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 4px;
+    color: #aab2cc;
+    background: #2c2d3b;
+}
+
+.chartGridExact,
+.rangeGrid,
+.zoneContentExact {
+    display: grid;
+    gap: 16px;
+}
+
+.chartGridExact {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.chartCardCompact {
+    display: grid;
+    gap: 10px;
+}
+
+.chartTitleRow {
+    font-size: 0.64rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+}
+
+.chartTitleRow span {
+    color: #c1c6dd;
+}
+
+.chartTitleRow strong {
+    color: #b8b2f8;
+}
+
+.cyanText {
+    color: #49d6f6 !important;
+}
+
+.barChartExact {
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    align-items: end;
+    gap: 6px;
+    height: 104px;
+}
+
+.bar,
+.barActive {
+    border-radius: 2px 2px 0 0;
+}
+
+.bar {
+    background: linear-gradient(180deg, rgba(195, 198, 255, 0.95) 0%, rgba(105, 110, 170, 0.35) 100%);
+}
+
+.barActive {
+    background: linear-gradient(180deg, rgba(229, 230, 255, 1) 0%, rgba(177, 170, 255, 0.92) 100%);
+    box-shadow: 0 0 14px rgba(183, 176, 255, 0.28);
+}
+
+.lineChartWrapExact {
+    height: 104px;
+}
+
+.lineChart {
+    width: 100%;
+    height: 100%;
+}
+
+.chartBaseLine {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.rangeGrid,
+.zonePanelExact {
+    grid-column: 1 / -1;
+}
+
+.rangeGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.rangeCard {
+    padding: 16px;
+}
+
+.rangeHeader {
+    justify-content: flex-start;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.rangeHeader p,
+.rangeValueCard span,
+.sectionLabel,
+.spanLabels span,
+.footerStats span {
+    color: #929ab6;
+    font-size: 0.54rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+}
+
+.rangeIconViolet,
+.rangeIconCyan {
+    width: 24px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+}
+
+.rangeIconViolet {
+    color: #b8b2f8;
+    background: rgba(184, 178, 248, 0.12);
+}
+
+.rangeIconCyan {
+    color: #49d6f6;
+    background: rgba(73, 214, 246, 0.12);
+}
+
+.sliderShell {
+    padding: 6px 8px 0;
+}
+
+.sliderTrack {
+    height: 4px;
+}
+
+.sliderActiveViolet,
+.sliderActiveCyan {
+    left: auto;
+}
+
+.sliderKnob {
+    position: absolute;
+    top: 50%;
+    width: 12px;
+    height: 12px;
+    border-radius: 999px;
+    background: #f1f2ff;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 0 2px rgba(183, 176, 255, 0.24);
+}
+
+.sliderKnob[style*="right"] {
+    transform: translate(50%, -50%);
+}
+
+.rangeValues {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 14px;
+}
+
+.rangeValueCard {
+    padding: 10px 12px;
+    border-radius: 2px;
+    background: #10101b;
+}
+
+.rangeValueCard strong {
+    display: block;
+    margin-top: 6px;
+    font-size: 1.45rem;
+    font-weight: 900;
+}
+
+.zonePanelExact {
+    padding: 0;
+    overflow: hidden;
+}
+
+.zoneTabsExact {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 0 0 0 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.zoneTab,
+.zoneTabActive {
+    height: 34px;
+    padding: 0 16px;
+    border: 0;
+    background: transparent;
+    color: #a3abc6;
+    font-size: 0.74rem;
+    font-weight: 900;
+}
+
+.zoneTabActive {
+    color: #b7b0ff;
+    border-bottom: 2px solid #b7b0ff;
+}
+
+.zoneSettings {
+    margin-left: auto;
+    padding-right: 12px;
+}
+
+.zoneContentExact {
+    grid-template-columns: 1fr 1fr 145px;
+    align-items: start;
+    gap: 20px;
+    padding: 18px 18px 20px;
+}
+
+.zoneSectionCompact {
+    display: grid;
+    gap: 14px;
+}
+
+.spanHeaderExact label,
+.spanHeaderExact strong {
+    font-size: 0.78rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+}
+
+.spanHeaderExact strong {
+    font-size: 2rem;
+    letter-spacing: -0.04em;
+    text-transform: none;
+}
+
+.sliderInput {
+    width: 100%;
+    accent-color: #c9c5f8;
+}
+
+.spanLabels {
+    display: flex;
+    justify-content: space-between;
+}
+
+.modeList {
+    display: grid;
+    gap: 8px;
+}
+
+.modeButton,
+.modeButtonActive {
+    min-height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 12px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 4px;
+    color: #ececff;
+    background: #141421;
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-align: left;
+}
+
+.modeButtonActive {
+    background: #3c3951;
+    border-color: rgba(183, 176, 255, 0.26);
+}
+
+.modeButtonActive svg {
+    color: #cbc6ff;
+}
+
+.diagnosticsCardExact {
+    padding: 12px;
+    border-radius: 2px;
+    background: #11111d;
+}
+
+.diagnosticRow {
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.diagnosticRow span {
+    color: #9ba2bc;
+    font-size: 0.66rem;
+    font-weight: 700;
+}
+
+.diagnosticRow strong {
+    font-size: 0.68rem;
+    font-weight: 900;
+}
+
+.secondaryButton {
+    width: 100%;
+    margin-top: 12px;
+    color: #ecedff;
+    background: #39394a;
+}
+
+.footerExact {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 0 8px;
+    margin-top: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.footerStats {
+    gap: 18px;
+}
+
+.footerIcons {
+    gap: 14px;
+}
+
+.footerIcons button {
+    width: 18px;
+    height: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #a8afcb;
+    border: 0;
+    background: transparent;
+}
+
+@media (max-width: 1100px) {
+
+    .contentShell,
+    .dashboardGridExact,
+    .chartGridExact,
+    .rangeGrid,
+    .zoneContentExact {
+        grid-template-columns: 1fr;
+    }
+
+    .sideNav {
+        display: none;
+    }
+
+    .topNav {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .mainColumn {
+        padding: 14px;
+    }
+
+    .heroCompact,
+    .footerExact {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .heroButtonsCompact,
+    .footerIcons,
+    .footerStats {
+        flex-wrap: wrap;
+    }
+
+    .heroButtonsCompact button,
+    .secondaryButton,
+    .ghostButton,
+    .primaryButton {
+        width: 100%;
+    }
+}
+
+/* Status Indicators */
+.statusIndicators {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.statusItem {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.7rem;
+    color: #9ca3bc;
+}
+
+.statusItem svg {
+    flex-shrink: 0;
+}
+
+.statusSuccess {
+    color: #4ade80;
+}
+
+.statusError {
+    color: #f87171;
+}
+
+.statusItem small {
+    color: #6b7280;
+    margin-left: 8px;
+}
+
+/* Button States */
+.buttonLoading {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.spinning {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
