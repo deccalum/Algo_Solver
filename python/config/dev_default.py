@@ -1,4 +1,4 @@
-import python.proto.algsolver_pb2 as algsolver_pb2
+import proto.algsolver_pb2 as algsolver_pb2
 from typing import Any
 
 

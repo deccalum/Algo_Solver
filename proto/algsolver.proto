@@ -6,13 +6,13 @@ option java_package = "com.algosolver.grpc";
 option java_multiple_files = true;
 option java_outer_classname = "AlgSolverProto";
 
-// -----------------------------------------------------------------------------
+// ---------------------------------
 // SECTION 1: ALGORITHM INPUT
-// -----------------------------------------------------------------------------
+// ---------------------------------
 
 message Generation {
-    double budget = 1;
-    double space = 2;
+  double budget = 1;
+  double space = 2;
 	double min_price = 3;
 	double max_price = 4;
 	double min_size = 5;
@@ -165,9 +165,7 @@ message OptimizeCatalogResponse {
 	int64 selected_count = 3;
 }
 
-message RunPipelineRequest {
-	AppConfig config = 1;
-}
+message RunPipelineRequest {}
 
 message RunPipelineResponse {
 	string status = 1;
@@ -175,10 +173,6 @@ message RunPipelineResponse {
 	int64 generated_count = 3;
 	int64 selected_count = 4;
 }
-
-// -----------------------------------------------------------------------------
-// SECTION 3: LIGHTWEIGHT ESTIMATION
-// -----------------------------------------------------------------------------
 
 message ZoneSpec {
 	string mode = 1;

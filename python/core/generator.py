@@ -4,15 +4,15 @@ import itertools
 from collections.abc import Iterable
 from typing import Any, Protocol
 
-import python.proto.algsolver_pb2 as algsolver_pb2
+import proto.algsolver_pb2 as algsolver_pb2
 from mapper import from_proto
-from python.core.zone import MODE_REGISTRY, Zones
-from python.models.demand_model         import DemandModel
-from python.models.logistics_model      import LogisticsModel
-from python.models.markup_model         import MarkupModel
-from python.models.stock_model          import StockModel
-from python.models.transit_model        import TransitModel, TransitResult
-from python.common import format_number, format_price, format_volume, log
+from core.zone import MODE_REGISTRY, Zones
+from models.demand_model         import DemandModel
+from models.logistics_model      import LogisticsModel
+from models.markup_model         import MarkupModel
+from models.stock_model          import StockModel
+from models.transit_model        import TransitModel, TransitResult
+from common import format_number, format_price, format_volume, log
 
 class Guardrails(Protocol):
     min_span: float

@@ -3,8 +3,8 @@ from typing import Any, Dict, List, Optional, Protocol
 
 from ortools.linear_solver import pywraplp
 
-import python.proto.algsolver_pb2 as algsolver_pb2
-from python.common import format_price, format_volume, log
+import proto.algsolver_pb2 as algsolver_pb2
+from common import format_price, format_volume, log
 
 
 class ProductLike(Protocol):

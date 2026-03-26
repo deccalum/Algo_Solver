@@ -4,12 +4,13 @@ import os
 
 import grpc
 
-import python.proto.algsolver_pb2 as algsolver_pb2
-import python.proto.algsolver_pb2_grpc as algsolver_pb2_grpc
-from python.common import log
-from python.core.generator import ProductGenerator
+from config.dev_default import build_dev_config
+import proto.algsolver_pb2 as algsolver_pb2
+import proto.algsolver_pb2_grpc as algsolver_pb2_grpc
+from common import log
+from core.generator import ProductGenerator
 from mapper import to_proto
-from python.core.solver import ProcurementOptimizer, SolverConfig
+from core.solver import ProcurementOptimizer, SolverConfig
 
 GenerateCatalogResponseMessage = getattr(algsolver_pb2, "GenerateCatalogResponse")
 OptimizeCatalogResponseMessage = getattr(algsolver_pb2, "OptimizeCatalogResponse")
@@ -34,14 +35,10 @@ class RunPipelineWire:
 
 class ProductEstimatorServicer(algsolver_pb2_grpc.ProductEstimatorServicer):
     @staticmethod
-    def _use_transit_v2() -> bool:
-        value = os.getenv("USE_TRANSIT_V2", "0").strip().lower()
-        return value in {"1", "true", "yes", "on"}
 
-    def GenerateCatalog(self, request, context):
-        generator = ProductGenerator.from_proto_config(
-            request.config, use_transit_v2=self._use_transit_v2()
-        )
+    def GenerateCatalog(request, context):
+        config = build_dev_config()
+        generator = ProductGenerator.from_proto_config(config)
         products = generator.generate()
         response = GenerateCatalogResponseMessage(generated_count=len(products))
         response.products.extend(products)
@@ -64,14 +61,13 @@ class ProductEstimatorServicer(algsolver_pb2_grpc.ProductEstimatorServicer):
         return to_proto(OptimizeCatalogResponseMessage, payload)
 
     def RunPipeline(self, request, context):
-        generator = ProductGenerator.from_proto_config(
-            request.config, use_transit_v2=self._use_transit_v2()
-        )
+        config = build_dev_config()
+        generator = ProductGenerator.from_proto_config(config)
         products = generator.generate()
         optimizer = ProcurementOptimizer(
             SolverConfig(
-                budget_constraint=request.config.generation.budget,
-                space_constraint=request.config.generation.space,
+                budget_constraint=config.generation.budget,
+                space_constraint=config.generation.space,
             )
         )
         result = optimizer.optimize(products)
@@ -108,7 +104,7 @@ class ProductEstimatorServicer(algsolver_pb2_grpc.ProductEstimatorServicer):
         )
 
 
-def serve(host: str = "0.0.0.0", port: int = 50051):
+def serve(host: str = "127.0.0.1", port: int = 60051):
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=4))
     algsolver_pb2_grpc.add_ProductEstimatorServicer_to_server(
         ProductEstimatorServicer(), server

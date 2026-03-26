@@ -1,8 +1,8 @@
 import os
 from typing import Any, Iterable
 
-from python.config.dev_default import dev_default
-from python.core.generator import ProductGenerator
+from config.dev_default import build_dev_default
+from core.generator import ProductGenerator
 
 
 def _require_psycopg():
@@ -42,7 +42,7 @@ def main() -> None:
     }
 
     generator = ProductGenerator.from_proto_config(
-        dev_default, use_transit_v2=use_transit_v2
+        build_dev_default(), use_transit_v2=use_transit_v2
     )
     products = generator.generate()
 
