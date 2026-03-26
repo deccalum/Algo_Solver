@@ -1,4 +1,4 @@
-package com.algosolver.dto;
+package com.algosolver.dto.response;
 
 import java.time.Instant;
 

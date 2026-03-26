@@ -1,35 +1,63 @@
 package com.algosolver.controller;
 
-import com.algosolver.service.DatabaseService;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import java.util.List;
-import java.util.Map;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.util.UriComponentsBuilder;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/database")
 public class DatabaseController {
-    private final DatabaseService databaseService;
 
-    public DatabaseController(DatabaseService databaseService) {
-        this.databaseService = databaseService;
-    }
+    @Autowired
+    private RestTemplate restTemplate;
+
+    private static final String PYTHON_API_BASE = "http://127.0.0.1:18000/api";
 
     @GetMapping("/tables")
-    public List<Map<String, Object>> getTables() {
-        return databaseService.getAllTables();
+    public ResponseEntity<?> getTables() {
+        try {
+            return restTemplate.getForEntity(PYTHON_API_BASE + "/database/tables", List.class);
+        } catch (Exception e) {
+            return ResponseEntity.status(503)
+                    .body(Map.of("error", "Python API unavailable", "details", e.getMessage()));
+        }
     }
 
     @GetMapping("/tables/{tableName}/schema")
-    public List<Map<String, String>> getTableSchema(@PathVariable String tableName) {
-        return databaseService.getTableSchema(tableName);
+    public ResponseEntity<?> getTableSchema(@PathVariable String tableName) {
+        try {
+            return restTemplate.getForEntity(PYTHON_API_BASE + "/database/tables/" + tableName + "/schema", List.class);
+        } catch (Exception e) {
+            return ResponseEntity.status(503).body(Map.of("error", "Python API unavailable"));
+        }
     }
 
     @GetMapping("/tables/{tableName}/data")
-    public List<Map<String, Object>> getTableData(@PathVariable String tableName) {
-        return databaseService.getTableData(tableName);
+    public ResponseEntity<?> getTableData(
+            @PathVariable String tableName,
+            @RequestParam(defaultValue = "100") int limit,
+            @RequestParam(defaultValue = "0") int offset,
+            @RequestParam(required = false) String filters) {
+        try {
+            UriComponentsBuilder builder = UriComponentsBuilder
+                    .fromUriString(PYTHON_API_BASE + "/database/tables/{tableName}/data")
+                    .queryParam("limit", limit)
+                    .queryParam("offset", offset);
+
+            if (filters != null && !filters.isBlank()) {
+                builder.queryParam("filters", filters);
+            }
+
+            String url = builder
+                    .buildAndExpand(tableName)
+                    .toUriString();
+
+            return restTemplate.getForEntity(url, List.class);
+        } catch (Exception e) {
+            return ResponseEntity.status(503).body(Map.of("error", "Python API unavailable"));
+        }
     }
 }
