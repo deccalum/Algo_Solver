@@ -1,14 +1,13 @@
 #!/bin/bash
 
 # Algo Solver - Full Stack Application Runner
-# Combines Python optimization engine with Java Spring Boot + React frontend
+# Python optimization engine + React frontend
 
 set -e
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PYTHON_DIR="$SCRIPT_DIR/python"
 DATA_DIR="$SCRIPT_DIR/data/output"
-JAVA_DIR="$SCRIPT_DIR/java"
 FRONTEND_DIR="$SCRIPT_DIR/frontend"
 
 # Colors for output
@@ -39,28 +38,27 @@ case "$1" in
         print_info "Building frontend..."
         cd "$FRONTEND_DIR"
         npm run build
-        print_success "Frontend built to java/src/main/resources/static"
+        print_success "Frontend built to dist"
         
-        print_info "Starting Spring Boot server..."
-        cd "$JAVA_DIR"
-        mvn spring-boot:run
-        # Browser auto-opens at http://localhost:9091
+        print_info "Starting Python API server..."
+        cd "$PYTHON_DIR"
+        python run_api.py
         ;;
     
     dev)
         print_header "Starting Development Servers"
         print_info "This will start:"
         print_info "  • Frontend dev server: http://localhost:3000"
-        print_info "  • Backend API server:  http://localhost:9091"
+        print_info "  • Python API server:    http://localhost:18000"
         print_info ""
-        print_info "Starting backend first..."
+        print_info "Starting Python backend first..."
         
-        cd "$JAVA_DIR"
-        mvn spring-boot:run &
+        cd "$PYTHON_DIR"
+        python run_api.py &
         BACKEND_PID=$!
         
         sleep 5
-        print_success "Backend running (PID: $BACKEND_PID)"
+        print_success "Python API running (PID: $BACKEND_PID)"
         
         print_info "Starting frontend..."
         cd "$FRONTEND_DIR"
@@ -73,17 +71,16 @@ case "$1" in
     frontend)
         print_header "Starting Frontend Dev Server Only"
         print_info "Dev server: http://localhost:3000"
-        print_info "API proxy:  http://localhost9091"
+        print_info "API proxy:  http://localhost:18000"
         cd "$FRONTEND_DIR"
         npm run dev
         ;;
     
     backend)
-        print_header "Starting Backend API Server Only"
-        print_info "Spring Boot: http://localhost9091"
-        print_info "Browser will auto-open"
-        cd "$JAVA_DIR"
-        mvn spring-boot:run
+        print_header "Starting Python API Server Only"
+        print_info "FastAPI server: http://localhost:18000"
+        cd "$PYTHON_DIR"
+        python run_api.py
         ;;
     
     build)
@@ -95,16 +92,39 @@ case "$1" in
         
         print_info "Building frontend for production..."
         npm run build
-        print_success "Frontend built → java/src/main/resources/static/"
-        
-        print_info "Building Spring Boot application..."
-        cd "$JAVA_DIR"
-        mvn clean package -DskipTests
-        print_success "Backend packaged → java/target/Algo_Solver-1.0.jar"
+        print_success "Frontend built → frontend/dist/"
         
         print_header "Build Complete"
         print_info "Run with: ./run.sh start"
-        print_info "Or JAR:   java -jar java/target/Algo_Solver-1.0.jar"
+        ;;
+    
+    # ============ DOCKER COMMANDS ============
+    
+    docker-up)
+        print_header "Starting Docker Services"
+        print_info "This will start:"
+        print_info "  • PostgreSQL database: localhost:5432"
+        print_info "  • Python API server:    localhost:18000"
+        print_info "  • Frontend (nginx):      localhost:80"
+        print_info ""
+        docker-compose up --build
+        ;;
+    
+    docker-dev)
+        print_header "Starting Docker Services (Development)"
+        print_info "Same as docker-up but with rebuild"
+        docker-compose up --build --force-recreate
+        ;;
+    
+    docker-down)
+        print_header "Stopping Docker Services"
+        docker-compose down
+        print_success "Docker services stopped"
+        ;;
+    
+    docker-logs)
+        print_header "Docker Service Logs"
+        docker-compose logs -f
         ;;
     
     # ============ PYTHON OPTIMIZATION ENGINE ============
@@ -112,7 +132,7 @@ case "$1" in
     generate)
         print_header "Generating Product Catalog (~100k products)"
         cd "$PYTHON_DIR"
-        python3 main.py
+        python main.py
         print_success "Products generated to: $DATA_DIR/"
         ;;
     
@@ -132,14 +152,9 @@ case "$1" in
         npm install
         print_success "Frontend dependencies installed"
         
-        print_info "Verifying Maven..."
-        cd "$JAVA_DIR"
-        mvn --version
-        print_success "Maven ready"
-        
         print_info "Verifying Python..."
         cd "$PYTHON_DIR"
-        python3 --version
+        python --version
         print_success "Python ready"
         
         print_header "All Dependencies Ready"
@@ -152,11 +167,6 @@ case "$1" in
         cd "$FRONTEND_DIR"
         rm -rf dist node_modules
         
-        print_info "Cleaning backend..."
-        cd "$JAVA_DIR"
-        mvn clean
-        rm -rf src/main/resources/static/*
-        
         print_info "Cleaning Python cache..."
         cd "$PYTHON_DIR"
         find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
@@ -168,53 +178,55 @@ case "$1" in
         cat << 'EOF'
 ╔════════════════════════════════════════════════════════════════╗
 ║                    ALGO SOLVER - RUNNER                        ║
-║          Python Optimization + Spring Boot + React             ║
+║              Python Optimization + React Frontend              ║
 ╚════════════════════════════════════════════════════════════════╝
 
 Usage: ./run.sh [command]
 
 📦 FULL-STACK COMMANDS:
   start          Start production app (builds frontend + runs backend)
-                 → Opens http://localhost9091 automatically
-  
+                 → Opens http://localhost:18000 automatically
   dev            Start dev servers (frontend + backend)
                  → Frontend: http://localhost:3000 (with hot reload)
-                 → Backend:  http://localhost9091
-  
+                 → Backend:  http://localhost:18000
   frontend       Start only frontend dev server (port 3000)
-  backend        Start only backend server (port 9091)
+  backend        Start only backend server (port 18000)
   build          Build complete application for production
-  
+
+🐳 DOCKER COMMANDS:
+  docker-up      Start all services with Docker Compose
+                 → Frontend: http://localhost:8080
+                 → API:      http://localhost:18000
+                 → Database: localhost:5432
+  docker-dev     Same as docker-up but force rebuild
+  docker-down    Stop all Docker services
+  docker-logs    Show Docker service logs
+
 🐍 PYTHON OPTIMIZATION ENGINE:
   generate       Generate product catalog (~100k products)
   results        Show generated data files
 
 🛠️  UTILITIES:
-  install        Install all dependencies (npm + verify Maven/Python)
+  install        Install all dependencies (npm + verify Python)
   clean          Remove all build artifacts
 
 💡 QUICK START:
   ./run.sh install       # First time only
   ./run.sh dev           # Development mode
   ./run.sh generate      # Generate product data
-  
-  Or production:
-  ./run.sh build         # Build everything
-  ./run.sh start         # Run production app (auto-opens browser)
+
+  Or with Docker:
+  ./run.sh docker-up     # Production containers
 
 📚 CONFIGURATION:
-  - Python engine:  config/app.yaml
-  - Spring Boot:    java/src/main/resources/application.properties
+  - Python engine:  config/dev_default.py
   - Frontend:       frontend/vite.config.js
-  
-🌐 URLs:
-  Production:  http://localhost9091  (Spring Boot serves React)
-  Development: http://localhost:3000  (Vite dev server with HMR)
-               http://localhost9091  (Spring Boot API)
+  - Docker:         docker-compose.yml
 
-⚙️  DISABLE AUTO-BROWSER:
-  Edit java/src/main/resources/application.properties:
-    app.open-browser=false
+🌐 URLs:
+  Development: http://localhost:3000  (Vite dev server with HMR)
+               http://localhost:18000 (FastAPI backend)
+  Production:  http://localhost:8080   (nginx + API)
 EOF
         ;;
 esac

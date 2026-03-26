@@ -1,13 +1,13 @@
 # Algo Solver
 
-**Full-stack optimization platform**: Python optimization engine + Spring Boot API + React UI
+**Full-stack optimization platform**: Python optimization engine + React UI
 
 ## TODO
 
 ### FOR VITE GUI
 
 * add database view
-* add SQL queires and other commands.
+* add SQL queries and other commands.
 * add option to export data to CSV or Excel.
 * add filters and sorting options for the data.
 
@@ -17,11 +17,11 @@
 
 #### IMPLEMENTATION
 
-1. populate java packages: ``dto``, ``dao``,``repository``, ``service``, ``controller``. add java classes for each package. implement basic functionality for each class. wire up the GUI to the backend services.`
+1. The Python FastAPI backend provides all API endpoints. Frontend connects directly to Python on port 18000.
 
-2. Find and insert typescript/javascript+css database template.
+2. Database view is implemented with Ag-Grid in React.
 
-3. add database connection and queries. implement data insertion and update operations. add postgres python functions for data manipulation and retrieval. organize arg runs and other backend processes. wire to GUI.
+3. Database operations are handled by Python SQLAlchemy. Data export and queries work through the API.
 
 Find a way to simplify testing different functions and features. GUI should expose different versions of the algorithm with different parameters. add a way to compare results and performance of different versions.
 
