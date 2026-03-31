@@ -423,9 +423,9 @@ export default function GenerationPage() {
                   label="Space Capacity"
                   accent="cyan"
                   value={formatCompact(space)}
-                  suffix=""
-                  min="Min: 500 units"
-                  max="Max: 20k units"
+                  suffix="m²"
+                  min="Min: 500 m²"
+                  max="Max: 20k m²"
                   fill={clamp((space / 20000) * 100, 2, 100)}
                 />
               </div>
