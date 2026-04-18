@@ -1,0 +1,168 @@
+/* solver-console.css – SolverConsole */
+
+.solver-console {
+  position: relative;
+}
+
+.solver-console__panel {
+  background: #0f1117;
+  border-radius: 0.75rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 400px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+@media (min-width: 768px) {
+  .solver-console__panel {
+    position: sticky;
+    top: 140px;
+    height: calc(100vh - 200px);
+  }
+}
+
+/* Header */
+.solver-console__header {
+  background: #1a1d24;
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.solver-console__header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.solver-console__dots {
+  display: flex;
+  gap: 0.375rem;
+}
+
+.solver-console__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.solver-console__dot--red    { background: #ff5f56; }
+.solver-console__dot--yellow { background: #ffbd2e; }
+.solver-console__dot--green  { background: #27c93f; }
+
+.solver-console__label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: #94a3b8;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+/* Tab bar */
+.solver-console__tabs {
+  display: flex;
+  background: #1a1d24;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 0 1rem;
+}
+
+.solver-console__tab {
+  padding: 0.625rem 1rem;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: #fff;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid var(--color-surface-tint);
+  cursor: pointer;
+}
+
+/* Log content */
+.solver-console__log {
+  flex-grow: 1;
+  padding: 1rem;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.625;
+  overflow-y: auto;
+}
+
+.solver-console__empty {
+  color: #475569;
+}
+
+.solver-console__line {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.solver-console__time {
+  color: #475569;
+}
+
+.solver-console__level {
+  font-weight: 700;
+}
+
+.solver-console__level--INFO { color: var(--color-surface-tint); }
+.solver-console__level--SCIP { color: #10b981; }
+.solver-console__level--OK   { color: #10b981; }
+.solver-console__level--EXEC { color: var(--color-surface-tint); }
+.solver-console__level--ERR  { color: #f87171; }
+
+.solver-console__msg {
+  color: #94a3b8;
+}
+
+.solver-console__cursor {
+  color: rgba(52, 211, 153, 0.5);
+  margin-top: 1rem;
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.5; }
+}
+
+/* Input */
+.solver-console__input-area {
+  padding: 0.75rem 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: #0f1117;
+}
+
+.solver-console__input-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.solver-console__prompt {
+  color: var(--color-surface-tint);
+  font-weight: 700;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}
+
+.solver-console__input {
+  background: transparent;
+  border: none;
+  outline: none;
+  width: 100%;
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  padding: 0;
+}
+
+.solver-console__input::placeholder {
+  color: #334155;
+}

@@ -1,0 +1,57 @@
+/* ── HowItWorks ───────────────────────────────────────── */
+
+.how-it-works {
+  margin-top: 5rem;
+}
+
+.how-it-works__title {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 11px;
+  color: #9ca3af;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-bottom: var(--space-12);
+}
+
+.how-it-works__steps {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-6);
+}
+
+.how-it-works__step-group {
+  display: contents;
+}
+
+.how-it-works__step {
+  flex: 1;
+}
+
+.how-it-works__num {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-accent);
+  margin-bottom: var(--space-2);
+}
+
+.how-it-works__step-title {
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: var(--space-2);
+}
+
+.how-it-works__step-desc {
+  font-size: 13px;
+  color: var(--color-on-surface-variant);
+  line-height: 1.625;
+}
+
+.how-it-works__arrow {
+  padding-top: var(--space-8);
+  color: #d1d5db;
+  font-weight: 300;
+  font-size: var(--font-size-xl);
+}

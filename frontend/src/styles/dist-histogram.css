@@ -1,0 +1,52 @@
+/* dist-histogram.css — DistHistogram */
+
+.dist-histogram__bars {
+  height: 72px;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  gap: 1px;
+  position: relative;
+  overflow: hidden;
+  border-radius: 2px;
+}
+
+.dist-histogram__guide-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.dist-histogram__seg-boundary {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 10;
+  pointer-events: none;
+  width: 1px;
+  background: #94a3b8;
+}
+
+.dist-histogram__bar {
+  flex: 1;
+  border-radius: 1px 1px 0 0;
+}
+
+/* Tick marks */
+.dist-histogram__ticks {
+  height: 5px;
+  width: 100%;
+  position: relative;
+  margin-top: 1px;
+}
+
+.dist-histogram__tick {
+  position: absolute;
+  top: 0;
+  width: 1px;
+  height: 3px;
+  border-radius: var(--radius-full);
+}

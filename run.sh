@@ -10,6 +10,15 @@ PYTHON_DIR="$SCRIPT_DIR/python"
 DATA_DIR="$SCRIPT_DIR/data/output"
 FRONTEND_DIR="$SCRIPT_DIR/frontend"
 
+# Prefer the project venv if it exists, otherwise fall back to system python.
+if [ -f "$SCRIPT_DIR/.venv/Scripts/python.exe" ]; then
+    PYTHON="$SCRIPT_DIR/.venv/Scripts/python.exe"   # Windows (Git Bash)
+elif [ -f "$SCRIPT_DIR/.venv/bin/python" ]; then
+    PYTHON="$SCRIPT_DIR/.venv/bin/python"            # macOS / Linux
+else
+    PYTHON="python"
+fi
+
 # Colors for output
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
@@ -35,37 +44,78 @@ case "$1" in
     
     start)
         print_header "Starting Full-Stack Application"
-        print_info "Building frontend..."
-        cd "$FRONTEND_DIR"
-        npm run build
-        print_success "Frontend built to dist"
-        
-        print_info "Starting Python API server..."
-        cd "$PYTHON_DIR"
-        python run_api.py
+        print_info "Using Docker Compose (postgres + api + nginx frontend)"
+        print_info "  • Frontend (nginx): http://localhost:8080"
+        print_info "  • API:              http://localhost:18000"
+        print_info "  • Database:         localhost:5432"
+        print_info ""
+        cd "$SCRIPT_DIR"
+        docker compose up --build
         ;;
     
     dev)
         print_header "Starting Development Servers"
         print_info "This will start:"
-        print_info "  • Frontend dev server: http://localhost:3000"
+        print_info "  • PostgreSQL (Docker):  localhost:5432"
         print_info "  • Python API server:    http://localhost:18000"
+        print_info "  • Frontend dev server:  http://localhost:3000"
         print_info ""
-        print_info "Starting Python backend first..."
-        
-        cd "$PYTHON_DIR"
-        python run_api.py &
+
+        # 1. Ensure postgres is up (reuse the compose service, detached)
+        print_info "Starting PostgreSQL container..."
+        cd "$SCRIPT_DIR"
+        docker compose up postgres -d
+
+        # 2. Wait until postgres is healthy
+        print_info "Waiting for PostgreSQL to be ready..."
+        until docker compose exec -T postgres pg_isready -U postgres -d grip_solve > /dev/null 2>&1; do
+            sleep 1
+        done
+        print_success "PostgreSQL ready"
+
+        # 3. Resolve DATABASE_URL: .env overrides, then fallback to docker-compose default
+        if [ -f "$SCRIPT_DIR/.env" ]; then
+            set -a; source "$SCRIPT_DIR/.env"; set +a
+            print_info "Loaded .env"
+        fi
+        export DATABASE_URL="${DATABASE_URL:-postgresql://postgres:postgres@localhost:5432/grip_solve}"
+        print_info "DATABASE_URL: $DATABASE_URL"
+
+        # 4. Start the Python API in the background
+        print_info "Starting Python API..."
+        "$PYTHON" python/run_api.py &
         BACKEND_PID=$!
-        
-        sleep 5
-        print_success "Python API running (PID: $BACKEND_PID)"
-        
+
+        # 5. Wait up to 15 s for the API to start accepting connections
+        API_UP=0
+        for i in $(seq 1 15); do
+            sleep 1
+            if ! kill -0 $BACKEND_PID 2>/dev/null; then
+                echo ""
+                print_info "ERROR: Python API process exited (PID $BACKEND_PID). Check logs above."
+                docker compose down postgres 2>/dev/null || true
+                exit 1
+            fi
+            if curl -sf http://127.0.0.1:18000/api/health > /dev/null 2>&1; then
+                API_UP=1
+                break
+            fi
+        done
+
+        if [ $API_UP -eq 0 ]; then
+            print_info "WARNING: API did not respond within 15 s — check logs above."
+        else
+            print_success "Python API running (PID: $BACKEND_PID)"
+        fi
+
+        # 6. Start Vite dev server (foreground — keeps the terminal live)
         print_info "Starting frontend..."
         cd "$FRONTEND_DIR"
         npm run dev
-        
+
         # Cleanup on exit
         kill $BACKEND_PID 2>/dev/null || true
+        docker compose stop postgres 2>/dev/null || true
         ;;
     
     frontend)
@@ -79,8 +129,8 @@ case "$1" in
     backend)
         print_header "Starting Python API Server Only"
         print_info "FastAPI server: http://localhost:18000"
-        cd "$PYTHON_DIR"
-        python run_api.py
+        cd "$SCRIPT_DIR"
+        "$PYTHON" python/run_api.py
         ;;
     
     build)
@@ -105,34 +155,38 @@ case "$1" in
         print_info "This will start:"
         print_info "  • PostgreSQL database: localhost:5432"
         print_info "  • Python API server:    localhost:18000"
-        print_info "  • Frontend (nginx):      localhost:80"
+        print_info "  • Frontend (nginx):      localhost:8080"
         print_info ""
-        docker-compose up --build
+        cd "$SCRIPT_DIR"
+        docker compose up --build
         ;;
-    
+
     docker-dev)
         print_header "Starting Docker Services (Development)"
-        print_info "Same as docker-up but with rebuild"
-        docker-compose up --build --force-recreate
+        print_info "Same as docker-up but force-recreate all containers"
+        cd "$SCRIPT_DIR"
+        docker compose up --build --force-recreate
         ;;
-    
+
     docker-down)
         print_header "Stopping Docker Services"
-        docker-compose down
+        cd "$SCRIPT_DIR"
+        docker compose down
         print_success "Docker services stopped"
         ;;
-    
+
     docker-logs)
         print_header "Docker Service Logs"
-        docker-compose logs -f
+        cd "$SCRIPT_DIR"
+        docker compose logs -f
         ;;
     
     # ============ PYTHON OPTIMIZATION ENGINE ============
     
     generate)
         print_header "Generating Product Catalog (~100k products)"
-        cd "$PYTHON_DIR"
-        python main.py
+        cd "$SCRIPT_DIR"
+        "$PYTHON" python/main.py
         print_success "Products generated to: $DATA_DIR/"
         ;;
     
@@ -153,9 +207,8 @@ case "$1" in
         print_success "Frontend dependencies installed"
         
         print_info "Verifying Python..."
-        cd "$PYTHON_DIR"
-        python --version
-        print_success "Python ready"
+        "$PYTHON" --version
+        print_success "Python ready ($PYTHON)"
         
         print_header "All Dependencies Ready"
         ;;
@@ -184,23 +237,24 @@ case "$1" in
 Usage: ./run.sh [command]
 
 📦 FULL-STACK COMMANDS:
-  start          Start production app (builds frontend + runs backend)
-                 → Opens http://localhost:18000 automatically
-  dev            Start dev servers (frontend + backend)
-                 → Frontend: http://localhost:3000 (with hot reload)
-                 → Backend:  http://localhost:18000
-  frontend       Start only frontend dev server (port 3000)
-  backend        Start only backend server (port 18000)
-  build          Build complete application for production
+  start          Start via Docker Compose (same as docker-up)
+                 → Frontend: http://localhost:8080
+                 → API:      http://localhost:18000
+  dev            Start dev servers with hot reload
+                 → Frontend: http://localhost:3000 (Vite HMR)
+                 → Backend:  http://localhost:18000 (requires local Postgres)
+  frontend       Start only Vite dev server (port 3000)
+  backend        Start only Python API server (port 18000)
+  build          Build frontend for production
 
 🐳 DOCKER COMMANDS:
-  docker-up      Start all services with Docker Compose
+  docker-up      Build and start all services (postgres + api + nginx)
                  → Frontend: http://localhost:8080
                  → API:      http://localhost:18000
                  → Database: localhost:5432
-  docker-dev     Same as docker-up but force rebuild
-  docker-down    Stop all Docker services
-  docker-logs    Show Docker service logs
+  docker-dev     Same as docker-up but force-recreate all containers
+  docker-down    Stop and remove all Docker containers
+  docker-logs    Tail logs from all services
 
 🐍 PYTHON OPTIMIZATION ENGINE:
   generate       Generate product catalog (~100k products)

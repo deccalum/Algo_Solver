@@ -41,15 +41,6 @@ __pycache__/
 *.pyo
 *.pyd
 
-### PROJECT-SPECIFIC ###
-/data
-/.versions
-notes.md
-
-# Frontend build output (gets bundled into JAR)
-java/src/main/resources/static/
-!java/src/main/resources/static/.gitkeep
-
 ### NODE ###
 node_modules
 dist
@@ -63,3 +54,15 @@ lerna-debug.log*
 ### LOGS ###
 logs
 *.log
+
+
+### PROJECT-SPECIFIC ###
+/data
+/.versions
+.env
+TODO.md
+
+### CLAUDE-CODE ###
+.claude/
+.claudeignore
+CLAUDE.md

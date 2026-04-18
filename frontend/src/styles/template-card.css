@@ -1,0 +1,83 @@
+/* ── TemplateCard ──────────────────────────────────────── */
+
+.template-card {
+  background-color: #ffffff;
+  border: 1px solid #e2e5ec;
+  border-radius: var(--radius-md);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  transition: all var(--transition);
+  cursor: pointer;
+}
+
+.template-card:hover {
+  border-color: var(--color-accent);
+  box-shadow: 0 4px 20px -2px rgba(91, 53, 213, 0.15);
+}
+
+/* Top row: icon + badge */
+.template-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--space-4);
+}
+
+.template-card__icon-box {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.template-card__badge {
+  padding: 0.125rem var(--space-2);
+  background-color: var(--color-accent-light);
+  color: var(--color-accent);
+  font-size: 10px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  border-radius: var(--radius-sm);
+  text-transform: uppercase;
+}
+
+/* Title */
+.template-card__title {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--color-on-surface);
+  margin-bottom: var(--space-6);
+}
+
+/* Button */
+.template-card__button {
+  margin-top: auto;
+  width: 100%;
+  padding: 0.625rem 0;
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition);
+}
+
+.template-card__button--default {
+  background-color: var(--color-accent);
+  color: #ffffff;
+  border: none;
+}
+
+.template-card__button--default:hover {
+  opacity: 0.9;
+}
+
+.template-card__button--alt {
+  background-color: #ffffff;
+  border: 1px solid currentColor;
+}
+
+.template-card__button--alt:hover {
+  opacity: 0.85;
+}

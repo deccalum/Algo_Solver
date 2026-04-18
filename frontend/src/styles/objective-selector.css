@@ -1,0 +1,99 @@
+/* objective-selector.css – ObjectiveSelector */
+
+.objective-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.objective-selector__heading {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: rgba(69, 70, 77, 0.7);
+}
+
+.objective-selector__card {
+  background: var(--color-surface-container-lowest);
+  border: 1px solid rgba(198, 198, 205, 0.2);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Param pills */
+.objective-selector__pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.objective-selector__pill {
+  padding: 0.375rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.objective-selector__pill--active {
+  background: var(--color-surface-tint);
+  color: #fff;
+}
+
+.objective-selector__pill--inactive {
+  background: var(--color-surface-container);
+  color: var(--color-on-surface-variant);
+}
+
+.objective-selector__pill--inactive:hover {
+  background: rgba(211, 228, 254, 0.5);
+}
+
+/* Sense toggle */
+.objective-selector__sense-row {
+  display: flex;
+  gap: 1rem;
+}
+
+.objective-selector__sense-btn {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  border: 2px solid rgba(198, 198, 205, 0.3);
+  font-weight: 700;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: transparent;
+  color: rgba(69, 70, 77, 0.5);
+}
+
+.objective-selector__sense-btn:hover {
+  border-color: var(--color-outline-variant);
+  color: var(--color-on-surface-variant);
+}
+
+.objective-selector__sense-btn--active {
+  border-color: var(--color-surface-tint);
+  background: rgba(77, 68, 227, 0.05);
+  color: var(--color-surface-tint);
+}
+
+.objective-selector__sense-btn .material-symbols-rounded {
+  font-size: 0.875rem;
+}

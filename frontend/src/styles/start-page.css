@@ -1,0 +1,54 @@
+/* ── StartPage ─────────────────────────────────────────── */
+
+.start-page {
+  max-width: 960px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: var(--space-6) var(--space-4);
+}
+
+@media (min-width: 640px) {
+  .start-page {
+    padding: var(--space-10) var(--space-6);
+  }
+}
+
+/* Loading */
+.start-page__loading {
+  text-align: center;
+  color: var(--color-on-surface-variant);
+  padding: 5rem 0;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+}
+
+/* Section header row */
+.start-page__section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-4);
+}
+
+/* Section label */
+.start-page__section-label {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 11px;
+  color: #9ca3af;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+/* Template grid */
+.start-page__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 768px) {
+  .start-page__grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

@@ -1,0 +1,13 @@
+/* ── AppShell ─────────────────────────────────────────── */
+
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-shell__main {
+  padding-top: 88px;   /* TopNav 52px + SessionBar 36px */
+  padding-bottom: 32px; /* StatusFooter height */
+  flex-grow: 1;
+}

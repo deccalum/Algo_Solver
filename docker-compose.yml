@@ -1,10 +1,10 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: algosolver-postgres
+    container_name: grip_solve-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: algosolver
+      POSTGRES_DB: grip_solve
       POSTGRES_USER: postgres
       POSTGRES_HOST_AUTH_METHOD: trust
     ports:
@@ -12,7 +12,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d algosolver"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d grip_solve"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -21,28 +21,28 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.python
-    container_name: algosolver-api
+    container_name: grip_solve-api
     restart: unless-stopped
     ports:
       - "18000:18000"
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/algosolver
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/grip_solve
       - DOCKER_CONTAINER=true
     depends_on:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://127.0.0.1:18000/api/config || exit 1"]
-      interval: 30s
+      test: ["CMD-SHELL", "curl -f http://127.0.0.1:18000/api/health || exit 1"]
+      interval: 15s
       timeout: 10s
-      retries: 3
-      start_period: 10s
+      retries: 5
+      start_period: 20s
 
   frontend:
     build:
       context: .
       dockerfile: Dockerfile.frontend
-    container_name: algosolver-frontend
+    container_name: grip_solve-frontend
     restart: unless-stopped
     ports:
       - "8080:80"

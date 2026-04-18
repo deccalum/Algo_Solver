@@ -1,26 +1,194 @@
+/* ── Design Tokens ──────────────────────────────────────
+   All colors, spacing and type scales live here.
+   Components reference vars — never raw values.
+   ──────────────────────────────────────────────────────── */
 :root {
-    font-family: Arial, Helvetica, sans-serif;
-    line-height: 1.4;
+  /* Accent */
+  --color-accent:              #5b35d5;
+  --color-accent-light:        rgba(91, 53, 213, 0.1);
+
+  /* Surface */
+  --color-surface:             #f8f9ff;
+  --color-surface-variant:     #d3e4fe;
+  --color-surface-dim:         #cbdbf5;
+  --color-surface-bright:      #f8f9ff;
+  --color-surface-tint:        #4d44e3;
+  --color-surface-container:          #e5eeff;
+  --color-surface-container-low:      #eff4ff;
+  --color-surface-container-high:     #dce9ff;
+  --color-surface-container-highest:  #d3e4fe;
+  --color-surface-container-lowest:   #ffffff;
+
+  /* On-surface / background */
+  --color-on-surface:          #0b1c30;
+  --color-on-surface-variant:  #45464d;
+  --color-on-background:       #0b1c30;
+  --color-background:          #f8f9ff;
+
+  /* Outline */
+  --color-outline:             #76777d;
+  --color-outline-variant:     #c6c6cd;
+
+  /* Primary */
+  --color-primary:                    #000000;
+  --color-primary-container:          #0f0069;
+  --color-primary-fixed:              #e2dfff;
+  --color-primary-fixed-dim:          #c3c0ff;
+  --color-on-primary:                 #ffffff;
+  --color-on-primary-container:       #7671ff;
+  --color-on-primary-fixed:           #0f0069;
+  --color-on-primary-fixed-variant:   #3323cc;
+
+  /* Secondary */
+  --color-secondary:                  #515f74;
+  --color-secondary-container:        #d5e3fd;
+  --color-secondary-fixed:            #d5e3fd;
+  --color-secondary-fixed-dim:        #b9c7e0;
+  --color-on-secondary:               #ffffff;
+  --color-on-secondary-container:     #57657b;
+  --color-on-secondary-fixed:         #0d1c2f;
+  --color-on-secondary-fixed-variant: #3a485c;
+
+  /* Tertiary */
+  --color-tertiary:                   #000000;
+  --color-tertiary-container:         #00201d;
+  --color-tertiary-fixed:             #89f5e7;
+  --color-tertiary-fixed-dim:         #6bd8cb;
+  --color-on-tertiary:                #ffffff;
+  --color-on-tertiary-container:      #0c9488;
+  --color-on-tertiary-fixed:          #00201d;
+  --color-on-tertiary-fixed-variant:  #005049;
+
+  /* Error */
+  --color-error:               #ba1a1a;
+  --color-error-container:     #ffdad6;
+  --color-on-error:            #ffffff;
+  --color-on-error-container:  #93000a;
+
+  /* Inverse */
+  --color-inverse-surface:     #213145;
+  --color-inverse-on-surface:  #eaf1ff;
+  --color-inverse-primary:     #c3c0ff;
+
+  /* Typography */
+  --font-headline: 'Manrope', sans-serif;
+  --font-body:     'Inter', sans-serif;
+  --font-mono:     'JetBrains Mono', monospace;
+
+  --font-size-xs:   0.625rem;  /* 10px */
+  --font-size-sm:   0.75rem;   /* 12px */
+  --font-size-base: 0.875rem;  /* 14px */
+  --font-size-lg:   1.125rem;  /* 18px */
+  --font-size-xl:   1.25rem;   /* 20px */
+  --font-size-2xl:  1.5rem;    /* 24px */
+  --font-size-3xl:  2rem;      /* 32px */
+
+  /* Spacing */
+  --space-1:  0.25rem;
+  --space-2:  0.5rem;
+  --space-3:  0.75rem;
+  --space-4:  1rem;
+  --space-5:  1.25rem;
+  --space-6:  1.5rem;
+  --space-8:  2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+
+  /* Layout */
+  --radius-sm:  4px;
+  --radius-md:  8px;
+  --radius-lg:  12px;
+  --radius-xl:  16px;
+  --radius-full: 9999px;
+  --transition:  0.2s ease;
 }
 
-html,
-body,
-#root {
-    height: 100%;
-    margin: 0;
-    padding: 0;
+/* ── Reset ──────────────────────────────────────────────
+   Minimal — removes browser inconsistencies only.
+   ──────────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
-* {
-    box-sizing: border-box;
+/* ── Base ───────────────────────────────────────────────── */
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
-    margin: 0;
-    min-width: 320px;
+  font-family: var(--font-body);
+  font-size: var(--font-size-base);
+  background-color: var(--color-background);
+  color: var(--color-on-surface);
+  line-height: 1.5;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
 }
 
-.null {
-    color: #6b7280;
-    font-style: italic;
+img, video {
+  display: block;
+  max-width: 100%;
 }
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* ── Material Symbols ──────────────────────────────────── */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  display: inline-block;
+  line-height: 1;
+  text-transform: none;
+  letter-spacing: normal;
+  word-wrap: normal;
+  white-space: nowrap;
+  direction: ltr;
+}
+
+/* ── Range Input ───────────────────────────────────────── */
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  background: var(--color-accent);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+/* ── Scrollbar ─────────────────────────────────────────── */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--color-outline-variant);
+  border-radius: 10px;
+}
+
+/* ── Breakpoints (reference) ──────────────────────────────
+   @media (min-width: 640px)  → sm
+   @media (min-width: 768px)  → md
+   @media (min-width: 1024px) → lg
+   @media (min-width: 1280px) → xl
+   ──────────────────────────────────────────────────────── */

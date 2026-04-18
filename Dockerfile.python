@@ -1,28 +1,23 @@
 # Python API Dockerfile
 FROM python:3.11-slim
 
-# Set working directory
 WORKDIR /app
 
-# Install system dependencies
+# System dependencies
 RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first for better caching
-COPY python/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Install Python dependencies
+COPY python/requirements.txt ./python/requirements.txt
+RUN pip install --no-cache-dir -r python/requirements.txt
 
-# Copy Python source code
-COPY python/ .
+# Copy source — keep python/ as a package directory so
+# `from python.server.api import app` resolves from /app
+COPY python/ ./python/
 
-# Copy proto files (needed for imports)
-COPY proto/ ./proto/
-
-# Expose port
 EXPOSE 18000
 
-# Run the API server
-CMD ["python", "run_api.py"]
+CMD ["python", "python/run_api.py"]
